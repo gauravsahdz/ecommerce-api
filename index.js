@@ -10,6 +10,7 @@ import inventoryItemRoutes from './src/routes/inventoryItem.routes.js';
 import orderRoutes from './src/routes/order.routes.js';
 import productRoutes from './src/routes/product.routes.js';
 import userRoutes from './src/routes/user.routes.js';
+import requestLogger from './src/middleware/requestLogger.middleware.js';
 
 const app = express();
 
@@ -21,6 +22,9 @@ app.use(express.json()); // Parse JSON request bodies
 
 // Enable CORS for all origins
 app.use(cors());
+
+// Request Logger Middleware
+app.use(requestLogger);
 
 // Auth Routes (should be before auth middleware)
 app.use('/api/auth', authRoutes);
