@@ -1,4 +1,5 @@
 import Order from '../models/Order.js';
+import { createNotification } from './notification.controller.js';
 
 // Get all orders
 export const getAllOrders = async (req, res) => {
@@ -38,6 +39,11 @@ export const createOrder = async (req, res) => {
 
   try {
     const savedOrder = await newOrder.save();
+    await createNotification({
+      recipient: customerId,
+      type: 'order_created',
+      data: savedOrder
+    });
     res.status(201).json(savedOrder);
   } catch (error) {
     res.status(400).json({ message: error.message });
