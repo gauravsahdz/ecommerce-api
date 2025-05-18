@@ -1,6 +1,7 @@
 import express from 'express';
 const router = express.Router(); // Keep const router = express.Router();
 import * as inventoryItemController from '../controllers/inventoryItem.controller.js';
+import { verifyToken } from '../middleware/auth.middleware.js';
 
 // Get all inventory items
 router.get('/', inventoryItemController.getAllInventoryItems);
@@ -12,9 +13,9 @@ router.get('/:id', inventoryItemController.getInventoryItemById);
 router.post('/', inventoryItemController.createInventoryItem);
 
 // Update an inventory item by ID
-router.put('/:id', inventoryItemController.updateInventoryItemById);
+router.put('/:id', verifyToken, inventoryItemController.updateInventoryItemById);
 
 // Delete an inventory item by ID
-router.delete('/:id', inventoryItemController.deleteInventoryItemById);
+router.delete('/:id', verifyToken, inventoryItemController.deleteInventoryItemById);
 
 export default router;

@@ -87,4 +87,14 @@ const signin = async (req, res) => {
   }
 };
 
-export { signup, signin };
+const whoami = async (req, res) => {
+  try {
+    // User data is attached to the request object by the verifyToken middleware
+    res.status(200).json(req.user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during whoami.' });
+  }
+};
+
+export { signup, signin, whoami };

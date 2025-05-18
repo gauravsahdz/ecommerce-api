@@ -1,6 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import * as orderController from '../controllers/order.controller.js';
+import { verifyToken } from '../middleware/auth.middleware.js';
 
 // GET all ordersgit 
 router.get('/', orderController.getAllOrders);
@@ -12,9 +13,9 @@ router.get('/:id', orderController.getOrderById);
 router.post('/', orderController.createOrder);
 
 // UPDATE an order by ID
-router.put('/:id', orderController.updateOrder);
+router.put('/:id', verifyToken, orderController.updateOrder);
 
 // DELETE an order by ID
-router.delete('/:id', orderController.deleteOrder);
+router.delete('/:id', verifyToken, orderController.deleteOrder);
 
 export default router;
