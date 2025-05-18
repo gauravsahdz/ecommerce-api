@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js'; // Assuming your User model is in ../models/User
+import asyncHandler from '../middleware/asyncHandler.middleware.js';
 
 const signup = async (req, res) => {
   try {
@@ -27,17 +28,10 @@ const signup = async (req, res) => {
 
     await newUser.save();
 
-    // Generate JWT token
-    const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-    // Return user info and token
+    // Return success status
     res.status(201).json({
-      id: newUser._id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      avatarUrl: newUser.avatarUrl,
-      token,
+ type: 'OK',
+      message: 'User registered successfully.',
     });
 
   } catch (error) {
@@ -73,12 +67,8 @@ const signin = async (req, res) => {
 
     // Return user info and token
     res.status(200).json({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
-      token,
+      type: 'OK',
+      message: 'Logged in successfully.',
     });
 
   } catch (error) {
@@ -86,9 +76,9 @@ const signin = async (req, res) => {
     res.status(500).json({ message: 'Server error during signin.' });
   }
 };
-
 const whoami = async (req, res) => {
   try {
+
     // User data is attached to the request object by the verifyToken middleware
     res.status(200).json(req.user);
   } catch (error) {
@@ -97,4 +87,8 @@ const whoami = async (req, res) => {
   }
 };
 
-export { signup, signin, whoami };
+const signupHandler = asyncHandler(signup);
+const signinHandler = asyncHandler(signin);
+const whoamiHandler = asyncHandler(whoami);
+
+export { signupHandler as signup, signinHandler as signin, whoamiHandler as whoami };

@@ -1,30 +1,32 @@
 import Faq from '../models/Faq.js';
+import asyncHandler from '../middleware/asyncHandler.middleware.js';
 
 // Get all FAQs
-export const getAllFaqs = async (req, res) => {
-  try {
-    const faqs = await Faq.find();
-    res.status(200).json(faqs);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+export const getAllFaqs = asyncHandler(async (req, res) => {
+  const faqs = await Faq.find();
+  res.status(200).json({
+    type: 'OK',
+    faqs
+  });
+});
 
 // Get a single FAQ by ID
-export const getFaqById = async (req, res) => {
-  try {
-    const faq = await Faq.findById(req.params.id);
-    if (!faq) {
-      return res.status(404).json({ message: 'FAQ not found' });
-    }
-    res.status(200).json(faq);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+export const getFaqById = asyncHandler(async (req, res) => {
+  const faq = await Faq.findById(req.params.id);
+  if (!faq) {
+    return res.status(404).json({
+      type: 'ERROR',
+      message: 'FAQ not found'
+    });
   }
-};
+  res.status(200).json({
+    type: 'OK',
+    faq
+  });
+});
 
 // Create a new FAQ
-export const createFaq = async (req, res) => {
+export const createFaq = asyncHandler(async (req, res) => {
   const faq = new Faq({
     question: req.body.question,
     answer: req.body.answer,
@@ -33,21 +35,22 @@ export const createFaq = async (req, res) => {
     order: req.body.order,
   });
 
-  try {
-    const newFaq = await faq.save();
-    res.status(201).json(newFaq);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
+  const newFaq = await faq.save();
+  res.status(201).json({
+    type: 'OK',
+    message: 'FAQ created successfully'
+  });
+});
 
 // Update an FAQ by ID
-export const updateFaq = async (req, res) => {
-  try {
-    const faq = await Faq.findById(req.params.id);
-    if (!faq) {
-      return res.status(404).json({ message: 'FAQ not found' });
-    }
+export const updateFaq = asyncHandler(async (req, res) => {
+  const faq = await Faq.findById(req.params.id);
+  if (!faq) {
+    return res.status(404).json({
+      type: 'ERROR',
+      message: 'FAQ not found'
+    });
+  }
 
     if (req.body.question != null) {
       faq.question = req.body.question;
@@ -66,23 +69,25 @@ export const updateFaq = async (req, res) => {
     }
 
     const updatedFaq = await faq.save();
-    res.status(200).json(updatedFaq);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
+  res.status(200).json({
+    type: 'OK',
+    message: 'FAQ updated successfully'
+  });
+});
 
 // Delete an FAQ by ID
-export const deleteFaq = async (req, res) => {
-  try {
-    const faq = await Faq.findById(req.params.id);
-    if (!faq) {
-      return res.status(404).json({ message: 'FAQ not found' });
-    }
-
-    await faq.remove();
-    res.status(200).json({ message: 'FAQ deleted' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+export const deleteFaq = asyncHandler(async (req, res) => {
+  const faq = await Faq.findById(req.params.id);
+  if (!faq) {
+    return res.status(404).json({
+      type: 'ERROR',
+      message: 'FAQ not found'
+    });
   }
-};
+
+  await faq.remove();
+  res.status(200).json({
+    type: 'OK',
+    message: 'FAQ deleted successfully'
+  });
+});

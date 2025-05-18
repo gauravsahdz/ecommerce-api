@@ -1,30 +1,29 @@
 import InventoryItem from '../models/InventoryItem.js'; // Adjust the path as needed
+import asyncHandler from '../middleware/asyncHandler.middleware.js';
 
 // Get all inventory items
-export const getAllInventoryItems = async (req, res) => {
-  try {
-    const inventoryItems = await InventoryItem.find();
-    res.status(200).json(inventoryItems);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+export const getAllInventoryItems = asyncHandler(async (req, res) => {
+  const inventoryItems = await InventoryItem.find();
+  res.status(200).json({
+ type: 'OK',
+    inventoryItems,
+  });
+});
 
 // Get a single inventory item by ID
-export const getInventoryItemById = async (req, res) => {
-  try {
-    const inventoryItem = await InventoryItem.findById(req.params.id);
-    if (!inventoryItem) {
-      return res.status(404).json({ message: 'Inventory item not found' });
-    }
-    res.status(200).json(inventoryItem);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+export const getInventoryItemById = asyncHandler(async (req, res) => {
+  const inventoryItem = await InventoryItem.findById(req.params.id);
+  if (!inventoryItem) {
+ return res.status(404).json({ type: 'ERROR', message: 'Inventory item not found' });
   }
-};
+  res.status(200).json({
+ type: 'OK',
+    inventoryItem,
+  });
+});
 
 // Create a new inventory item
-export const createInventoryItem = async (req, res) => {
+export const createInventoryItem = asyncHandler(async (req, res) => {
   const inventoryItem = new InventoryItem({
     productId: req.body.productId,
     productName: req.body.productName,
@@ -37,15 +36,14 @@ export const createInventoryItem = async (req, res) => {
     expirationDate: req.body.expirationDate,
     notes: req.body.notes,
   });
+  const newInventoryItem = await inventoryItem.save();
+  res.status(201).json({
+ type: 'OK',
+    message: 'Inventory item created successfully',
+  });
+});
 
-  try {
-    const newInventoryItem = await inventoryItem.save();
-    res.status(201).json(newInventoryItem);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
+// Update an inventory item by ID
 // Update an inventory item by ID
 export const updateInventoryItemById = async (req, res) => {
   try {
@@ -88,9 +86,15 @@ export const updateInventoryItemById = async (req, res) => {
     inventoryItem.lastStockUpdatedAt = Date.now(); // Update lastStockUpdatedAt on any update
 
     const updatedInventoryItem = await inventoryItem.save();
-    res.status(200).json(updatedInventoryItem);
+    res.status(200).json({
+      type: 'OK',
+      message: 'Inventory item updated successfully',
+    });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({
+      type: 'ERROR',
+      message: err.message
+    });
   }
 };
 
@@ -103,8 +107,14 @@ export const deleteInventoryItemById = async (req, res) => {
     }
 
     await inventoryItem.remove();
-    res.status(200).json({ message: 'Inventory item deleted' });
+    res.status(200).json({
+      type: 'OK',
+      message: 'Inventory item deleted successfully',
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      type: 'ERROR',
+      message: err.message
+    });
   }
 };

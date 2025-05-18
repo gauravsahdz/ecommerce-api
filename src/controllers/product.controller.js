@@ -5,9 +5,15 @@ import mongoose from 'mongoose';
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find().populate('categoryId');
-    res.status(200).json(products);
+    res.status(200).json({
+      type: 'OK',
+      products: products
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      type: 'ERROR',
+      message: error.message
+    });
   }
 };
 
@@ -16,14 +22,20 @@ export const getProductById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid product ID' });
-    }
+    } 
     const product = await Product.findById(req.params.id).populate('categoryId');
     if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({
+        type: 'ERROR',
+        message: 'Product not found'
+      });
     }
-    res.status(200).json(product);
+    res.status(200).json({
+      type: 'OK',
+      product: product
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ type: 'ERROR', message: error.message });
   }
 };
 
@@ -57,9 +69,14 @@ export const createProduct = async (req, res) => {
     const savedProduct = await newProduct.save();
     // Populate after saving to return the category name in the response
     const productWithCategory = await Product.findById(savedProduct._id).populate('categoryId');
-    res.status(201).json(productWithCategory);
+    res.status(201).json({
+      type: 'OK',
+      message: 'Product created successfully',
+    });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      type: 'ERROR',
+      message: error.message });
   }
 };
 
@@ -85,11 +102,14 @@ export const updateProductById = async (req, res) => {
     }).populate('categoryId');
 
     if (!updatedProduct) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ type: 'ERROR', message: 'Product not found' });
     }
-    res.status(200).json(updatedProduct);
+    res.status(200).json({
+      type: 'OK',
+      message: 'Product updated successfully',
+    });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ type: 'ERROR', message: error.message });
   }
 };
 
@@ -101,11 +121,17 @@ export const deleteProductById = async (req, res) => {
     }
     const deletedProduct = await Product.findByIdAndDelete(req.params.id);
     if (!deletedProduct) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({
+        type: 'ERROR',
+        message: 'Product not found'
+      });
     }
-    res.status(200).json({ message: 'Product deleted' });
+    res.status(200).json({
+      type: 'OK',
+      message: 'Product deleted successfully'
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ type: 'ERROR', message: error.message });
   }
 };
 
@@ -116,8 +142,14 @@ export const getProductsByCategoryId = async (req, res) => {
             return res.status(400).json({ message: 'Invalid category ID' });
         }
         const products = await Product.find({ categoryId: req.params.categoryId }).populate('categoryId');
-        res.status(200).json(products);
+        res.status(200).json({
+            type: 'OK',
+            products: products
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({
+            type: 'ERROR',
+            message: error.message
+        });
     }
 };

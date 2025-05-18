@@ -5,9 +5,15 @@ import mongoose from 'mongoose';
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password'); // Exclude password
-    res.status(200).json(users);
+    res.status(200).json({
+      type: 'OK',
+      users: users
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      type: 'ERROR',
+      message: err.message
+    });
   }
 };
 
@@ -22,9 +28,15 @@ export const getUserById = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.status(200).json(user);
+    res.status(200).json({
+      type: 'OK',
+      user: user
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      type: 'ERROR',
+      message: err.message
+    });
   }
 };
 
@@ -43,9 +55,15 @@ export const createUser = async (req, res) => {
     // Return the saved user without the password
     const userResponse = newUser.toObject();
     delete userResponse.password;
-    res.status(201).json(userResponse);
+    res.status(201).json({
+      type: 'OK',
+      message: 'User created successfully'
+    });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({
+      type: 'ERROR',
+      message: err.message
+    });
   }
 };
 
@@ -66,9 +84,15 @@ export const updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.status(200).json(user);
+    res.status(200).json({
+      type: 'OK',
+      message: 'User updated successfully'
+    });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({
+      type: 'ERROR',
+      message: err.message
+    });
   }
 };
 
@@ -83,8 +107,14 @@ export const deleteUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.status(200).json({ message: 'User deleted' });
+    res.status(200).json({
+      type: 'OK',
+      message: 'User deleted successfully'
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      type: 'ERROR',
+      message: err.message
+    });
   }
 };
