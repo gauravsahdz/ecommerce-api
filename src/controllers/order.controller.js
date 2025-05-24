@@ -38,10 +38,17 @@ export const createOrder = asyncHandler(async (req, res) => {
   });
 
   const savedOrder = await newOrder.save();
-  // Assuming createNotification is also updated to not use try-catch internally
+
+  // Notify the customer about the order creation
   await createNotification({
     recipient: customerId,
     type: 'order_created',
+    data: savedOrder,
+  });
+  // Notify the admin about the new order
+  await createNotification({
+    recipient: 'admin',
+    type: 'new_order',
     data: savedOrder,
   });
   res.status(201).json({

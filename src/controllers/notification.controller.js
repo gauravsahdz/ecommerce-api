@@ -11,6 +11,7 @@ export const createNotification = asyncHandler(async (req, res) => {
   await newNotification.save();
   res.status(201).json({ type: 'OK', message: 'Notification created successfully' });
 });
+
 export const getNotificationsForUser = asyncHandler(async (req, res) => {
   const notifications = await Notification.find({ userId: req.user.id }).sort({ createdAt: -1 });
   res.status(200).json({ type: 'OK', notifications: notifications });
