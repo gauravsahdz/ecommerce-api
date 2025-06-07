@@ -1,0 +1,2016 @@
+openapi: 3.0.0
+info:
+  title: E-commerce API
+  version: 1.0.0
+  description: API documentation for the E-commerce platform
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [Admin, User]
+        avatarUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        categoryId:
+          type: string
+          format: uuid
+        images:
+          type: array
+          items:
+            type: string
+        inStock:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        parentId:
+          type: string
+          format: uuid
+        imageUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+              price:
+                type: number
+        status:
+          type: string
+          enum: [Pending, Processing, Shipped, Delivered, Cancelled]
+        totalAmount:
+          type: number
+        shippingAddress:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            country:
+              type: string
+            zipCode:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FAQ:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        question:
+          type: string
+        answer:
+          type: string
+        category:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        warehouseId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        status:
+          type: string
+          enum: [InStock, LowStock, OutOfStock]
+        location:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApiResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [OK, ERROR]
+        message:
+          type: string
+        data:
+          type: object
+        meta:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+
+    PaginatedResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            pagination:
+              type: object
+              properties:
+                total:
+                  type: integer
+                page:
+                  type: integer
+                limit:
+                  type: integer
+                totalPages:
+                  type: integer
+                hasNextPage:
+                  type: boolean
+                hasPrevPage:
+                  type: boolean
+            filters:
+              type: object
+              properties:
+                applied:
+                  type: object
+                available:
+                  type: object
+            sort:
+              type: object
+              properties:
+                by:
+                  type: string
+                order:
+                  type: string
+                  enum: [asc, desc]
+
+    AppSettings:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        siteName:
+          type: string
+        siteDescription:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+        contactPhone:
+          type: string
+        socialLinks:
+          type: object
+          properties:
+            facebook:
+              type: string
+              format: uri
+            twitter:
+              type: string
+              format: uri
+            instagram:
+              type: string
+              format: uri
+        themeSettings:
+          type: object
+          properties:
+            primaryColor:
+              type: string
+            secondaryColor:
+              type: string
+            fontFamily:
+              type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    ActivityLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+        details:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    BlogPost:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        content:
+          type: string
+        author:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [Draft, Published, Archived]
+        featuredImage:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        addresses:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [Billing, Shipping]
+              street:
+                type: string
+              city:
+                type: string
+              state:
+                type: string
+              country:
+                type: string
+              zipCode:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DiscountCode:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        type:
+          type: string
+          enum: [Percentage, Fixed]
+        value:
+          type: number
+        minPurchase:
+          type: number
+        maxDiscount:
+          type: number
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+        usageLimit:
+          type: integer
+        usageCount:
+          type: integer
+        appliesTo:
+          type: string
+          enum: [All, Products, Categories]
+        productIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        categoryIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [Order, System, Promotion]
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        data:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Get users or a specific user by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            format: uuid
+          description: ID of a specific user to fetch
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: name
+          schema:
+            type: string
+        - in: query
+          name: email
+          schema:
+            type: string
+        - in: query
+          name: role
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User data
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: '#/components/schemas/PaginatedResponse'
+              examples:
+                singleItem:
+                  value:
+                    type: "OK"
+                    data:
+                      user:
+                        id: "123e4567-e89b-12d3-a456-426614174000"
+                        name: "John Doe"
+                        email: "john@example.com"
+                        role: "User"
+                        avatarUrl: "https://example.com/avatar.jpg"
+                multipleItems:
+                  value:
+                    type: "OK"
+                    data:
+                      users: []
+                    pagination:
+                      total: 50
+                      page: 1
+                      limit: 10
+                      totalPages: 5
+                      hasNextPage: true
+                      hasPrevPage: false
+                    filters:
+                      applied:
+                        role: "User"
+                      available:
+                        name: "John"
+                        email: "john@example.com"
+                        role: "User"
+                    sort:
+                      by: "name"
+                      order: "asc"
+
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - Users
+      summary: Update user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the user to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Users
+      summary: Delete user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the user to delete
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get products or a specific product by ID
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            format: uuid
+          description: ID of a specific product to fetch
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: name
+          schema:
+            type: string
+        - in: query
+          name: categoryId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: minPrice
+          schema:
+            type: number
+        - in: query
+          name: maxPrice
+          schema:
+            type: number
+        - in: query
+          name: inStock
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Product data
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: '#/components/schemas/PaginatedResponse'
+              examples:
+                singleItem:
+                  value:
+                    type: "OK"
+                    data:
+                      product:
+                        id: "123e4567-e89b-12d3-a456-426614174000"
+                        name: "Smartphone X"
+                        description: "Latest smartphone with advanced features"
+                        price: 999.99
+                        categoryId: "123e4567-e89b-12d3-a456-426614174001"
+                        images: ["https://example.com/phone1.jpg"]
+                        inStock: true
+                multipleItems:
+                  value:
+                    type: "OK"
+                    data:
+                      products: []
+                    pagination:
+                      total: 50
+                      page: 1
+                      limit: 10
+                      totalPages: 5
+                      hasNextPage: true
+                      hasPrevPage: false
+                    filters:
+                      applied:
+                        categoryId: "123e4567-e89b-12d3-a456-426614174001"
+                        minPrice: 500
+                        maxPrice: 1000
+                      available:
+                        categoryId: "123e4567-e89b-12d3-a456-426614174001"
+                        minPrice: 500
+                        maxPrice: 1000
+                        inStock: true
+                    sort:
+                      by: "price"
+                      order: "asc"
+
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                categoryId:
+                  type: string
+                  format: uuid
+                inStock:
+                  type: boolean
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - Products
+      summary: Update product
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the product to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Products
+      summary: Delete product
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the product to delete
+      responses:
+        '200':
+          description: Product deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get categories or a specific category by ID
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            format: uuid
+          description: ID of a specific category to fetch
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: name
+          schema:
+            type: string
+        - in: query
+          name: parentId
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Category data
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: '#/components/schemas/PaginatedResponse'
+              examples:
+                singleItem:
+                  value:
+                    type: "OK"
+                    data:
+                      category:
+                        id: "123e4567-e89b-12d3-a456-426614174000"
+                        name: "Electronics"
+                        description: "Electronic devices and accessories"
+                        parentId: null
+                        imageUrl: "https://example.com/electronics.jpg"
+                multipleItems:
+                  value:
+                    type: "OK"
+                    data:
+                      categories: []
+                    pagination:
+                      total: 50
+                      page: 1
+                      limit: 10
+                      totalPages: 5
+                      hasNextPage: true
+                      hasPrevPage: false
+                    filters:
+                      applied:
+                        name: "Electronics"
+                      available:
+                        name: "Electronics"
+                        parentId: null
+                    sort:
+                      by: "name"
+                      order: "asc"
+
+    post:
+      tags:
+        - Categories
+      summary: Create a new category
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - Categories
+      summary: Update category
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the category to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Categories
+      summary: Delete category
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the category to delete
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /faqs:
+    get:
+      tags:
+        - FAQs
+      summary: Get FAQs or a specific FAQ by ID
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            format: uuid
+          description: ID of a specific FAQ to fetch
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: question
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: FAQ data
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: '#/components/schemas/PaginatedResponse'
+              examples:
+                singleItem:
+                  value:
+                    type: "OK"
+                    data:
+                      faq:
+                        id: "123e4567-e89b-12d3-a456-426614174000"
+                        question: "What is your return policy?"
+                        answer: "We accept returns within 30 days of purchase."
+                        category: "Shipping"
+                multipleItems:
+                  value:
+                    type: "OK"
+                    data:
+                      faqs: []
+                    pagination:
+                      total: 50
+                      page: 1
+                      limit: 10
+                      totalPages: 5
+                      hasNextPage: true
+                      hasPrevPage: false
+                    filters:
+                      applied:
+                        category: "Shipping"
+                      available:
+                        question: "return policy"
+                        category: "Shipping"
+                    sort:
+                      by: "createdAt"
+                      order: "desc"
+
+    post:
+      tags:
+        - FAQs
+      summary: Create a new FAQ
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FAQ'
+      responses:
+        '201':
+          description: FAQ created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - FAQs
+      summary: Update FAQ
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the FAQ to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FAQ'
+      responses:
+        '200':
+          description: FAQ updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - FAQs
+      summary: Delete FAQ
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the FAQ to delete
+      responses:
+        '200':
+          description: FAQ deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /inventory:
+    get:
+      tags:
+        - Inventory
+      summary: Get inventory items or a specific inventory item by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: inventory_id
+          schema:
+            type: string
+            format: uuid
+          description: ID of a specific inventory item to fetch
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: productId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: warehouseId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [InStock, LowStock, OutOfStock]
+        - in: query
+          name: minQuantity
+          schema:
+            type: integer
+        - in: query
+          name: maxQuantity
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Inventory item(s) data
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: '#/components/schemas/PaginatedResponse'
+              examples:
+                singleItem:
+                  value:
+                    type: "OK"
+                    message: "Inventory item retrieved successfully"
+                    data:
+                      id: "123e4567-e89b-12d3-a456-426614174000"
+                      productId: "123e4567-e89b-12d3-a456-426614174001"
+                      warehouseId: "123e4567-e89b-12d3-a456-426614174002"
+                      quantity: 100
+                      status: "InStock"
+                      location: "A-1-2"
+                multipleItems:
+                  value:
+                    type: "OK"
+                    message: "Inventory items retrieved successfully"
+                    data: []
+                    pagination:
+                      total: 50
+                      page: 1
+                      limit: 10
+                      totalPages: 5
+                      hasNextPage: true
+                      hasPrevPage: false
+                    filters:
+                      applied:
+                        status: "InStock"
+                      available:
+                        status: ["InStock", "LowStock", "OutOfStock"]
+                    sort:
+                      by: "quantity"
+                      order: "desc"
+
+    post:
+      tags:
+        - Inventory
+      summary: Create a new inventory item
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItem'
+      responses:
+        '201':
+          description: Inventory item created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - Inventory
+      summary: Update an inventory item
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: inventory_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the inventory item to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItem'
+      responses:
+        '200':
+          description: Inventory item updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    delete:
+      tags:
+        - Inventory
+      summary: Delete an inventory item
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: inventory_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the inventory item to delete
+      responses:
+        '200':
+          description: Inventory item deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /app-settings:
+    get:
+      tags:
+        - App Settings
+      summary: Get application settings
+      responses:
+        '200':
+          description: Application settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    put:
+      tags:
+        - App Settings
+      summary: Update application settings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppSettings'
+      responses:
+        '200':
+          description: Application settings updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /activity-logs:
+    get:
+      tags:
+        - Activity Logs
+      summary: Get activity logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: userId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: action
+          schema:
+            type: string
+        - in: query
+          name: entityType
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Activity logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /blogs:
+    get:
+      tags:
+        - Blogs
+      summary: Get blog posts
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: title
+          schema:
+            type: string
+        - in: query
+          name: author
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Draft, Published, Archived]
+        - in: query
+          name: tags
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Blog posts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+    post:
+      tags:
+        - Blogs
+      summary: Create a new blog post
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BlogPost'
+      responses:
+        '201':
+          description: Blog post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    /blogs/{id}:
+      get:
+        tags:
+          - Blogs
+        summary: Get blog post by ID
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Blog post retrieved successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      put:
+        tags:
+          - Blogs
+        summary: Update blog post
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPost'
+        responses:
+          '200':
+            description: Blog post updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      delete:
+        tags:
+          - Blogs
+        summary: Delete blog post
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Blog post deleted successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: Get customers
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: firstName
+          schema:
+            type: string
+        - in: query
+          name: lastName
+          schema:
+            type: string
+        - in: query
+          name: email
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Customers retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+    /customers/{id}:
+      get:
+        tags:
+          - Customers
+        summary: Get customer by ID
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Customer retrieved successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      put:
+        tags:
+          - Customers
+        summary: Update customer
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        responses:
+          '200':
+            description: Customer updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+  /discount-codes:
+    get:
+      tags:
+        - Discount Codes
+      summary: Get discount codes
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: code
+          schema:
+            type: string
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [Percentage, Fixed]
+        - in: query
+          name: isActive
+          schema:
+            type: boolean
+        - in: query
+          name: appliesTo
+          schema:
+            type: string
+            enum: [All, Products, Categories]
+      responses:
+        '200':
+          description: Discount codes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+    post:
+      tags:
+        - Discount Codes
+      summary: Create a new discount code
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscountCode'
+      responses:
+        '201':
+          description: Discount code created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    /discount-codes/{id}:
+      get:
+        tags:
+          - Discount Codes
+        summary: Get discount code by ID
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Discount code retrieved successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      put:
+        tags:
+          - Discount Codes
+        summary: Update discount code
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscountCode'
+        responses:
+          '200':
+            description: Discount code updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      delete:
+        tags:
+          - Discount Codes
+        summary: Delete discount code
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Discount code deleted successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [Order, System, Promotion]
+        - in: query
+          name: isRead
+          schema:
+            type: boolean
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+    post:
+      tags:
+        - Notifications
+      summary: Create a new notification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+      responses:
+        '201':
+          description: Notification created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    /notifications/{id}:
+      get:
+        tags:
+          - Notifications
+        summary: Get notification by ID
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Notification retrieved successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      put:
+        tags:
+          - Notifications
+        summary: Update notification
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        responses:
+          '200':
+            description: Notification updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      delete:
+        tags:
+          - Notifications
+        summary: Delete notification
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Notification deleted successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: Get orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: customerId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Pending, Processing, Shipped, Delivered, Cancelled]
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+    post:
+      tags:
+        - Orders
+      summary: Create a new order
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+    /orders/{id}:
+      get:
+        tags:
+          - Orders
+        summary: Get order by ID
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Order retrieved successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      put:
+        tags:
+          - Orders
+        summary: Update order
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        responses:
+          '200':
+            description: Order updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse'
+
+      delete:
+        tags:
+          - Orders
+        summary: Delete order
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: string
+              format: uuid
+        responses:
+          '200':
+            description: Order deleted successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ApiResponse' 
