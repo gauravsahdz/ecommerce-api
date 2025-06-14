@@ -1,13 +1,30 @@
 import express from 'express';
-import { register, login, getCurrentUser, logout } from '../controllers/auth.ct.js';
-import { verifyToken } from '../middleware/auth.middleware.js';
+import { 
+  register,
+  login,
+  forgotPassword,
+  resetPassword,
+  verifyEmail,
+  getProfile,
+  updateProfile,
+  changePassword
+} from '../controllers/auth.ct.js';
+import { verifyToken } from '../middleware/auth.mw.js';
+import { asyncHandler } from '../utils/responseHandler.ut.js';
 
 const router = express.Router();
 
-// Auth routes
-router.post('/register', register);
-router.post('/login', login);
-router.get('/me', verifyToken, getCurrentUser);
-router.post('/logout', verifyToken, logout);
+// Public routes
+router.post('/register', asyncHandler(register));
+router.post('/login', asyncHandler(login));
+router.post('/forgot-password', asyncHandler(forgotPassword));
+router.post('/reset-password/:token', asyncHandler(resetPassword));
+router.get('/verify-email/:token', asyncHandler(verifyEmail));
+
+// Protected routes
+router.use(verifyToken);
+router.get('/profile', asyncHandler(getProfile));
+router.put('/profile', asyncHandler(updateProfile));
+router.put('/change-password', asyncHandler(changePassword));
 
 export default router; 

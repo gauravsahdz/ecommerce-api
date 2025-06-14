@@ -1,6 +1,7 @@
-import Notification from '../models/Notification.mo.js';
+import { Notification } from '../models/Notification.mo.js';
+import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
-import { responseHandler, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
+import { Notification as NotificationModel } from '../models/notification.m.js';
 
 // Get all notifications with filters
 export const getNotifications = asyncHandler(async (req, res) => {
@@ -48,15 +49,16 @@ export const getNotifications = asyncHandler(async (req, res) => {
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
 
-  return responseHandler.list(res, {
-    data: { notifications },
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages,
-      hasNextPage,
-      hasPrevPage
+  return ApiResponse.paginated(res, 'Notifications retrieved successfully', { notifications }, {
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    sort: {
+      by: sortBy,
+      order: sortOrder
     },
     filters: {
       applied: Object.keys(filter).length > 0 ? filter : null,
@@ -68,10 +70,6 @@ export const getNotifications = asyncHandler(async (req, res) => {
         startDate,
         endDate
       }
-    },
-    sort: {
-      by: sortBy,
-      order: sortOrder
     }
   });
 });
@@ -121,15 +119,16 @@ export const getNotificationsForUser = asyncHandler(async (req, res) => {
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
 
-  return responseHandler.list(res, {
-    data: { notifications },
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages,
-      hasNextPage,
-      hasPrevPage
+  return ApiResponse.paginated(res, 'Notifications retrieved successfully', { notifications }, {
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    sort: {
+      by: sortBy,
+      order: sortOrder
     },
     filters: {
       applied: Object.keys(filter).length > 0 ? filter : null,
@@ -139,85 +138,126 @@ export const getNotificationsForUser = asyncHandler(async (req, res) => {
         startDate,
         endDate
       }
-    },
-    sort: {
-      by: sortBy,
-      order: sortOrder
     }
   });
 });
 
 // Create a new notification
 export const createNotification = asyncHandler(async (req, res) => {
-  const { userId, type, message, data, isRead = false } = req.body;
-
-  if (userId && !mongoose.Types.ObjectId.isValid(userId)) {
-    throw new ApiError(400, 'Invalid user ID');
-  }
-
-  const notification = new Notification({
-    userId: userId ? new mongoose.Types.ObjectId(userId) : undefined,
-    type,
-    message,
-    data,
-    isRead
-  });
-
-  const savedNotification = await notification.save();
-  
-  return responseHandler.success(res, {
-    statusCode: 201,
-    message: 'Notification created successfully',
-    data: { notification: savedNotification },
-    meta: { id: savedNotification._id }
-  });
+  const notification = new Notification(req.body);
+  await notification.save();
+  return ApiResponse.success(res, 'Notification created successfully', { notification }, 201);
 });
 
 // Update a notification
 export const updateNotification = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+  const { id } = req.params;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid notification ID');
   }
 
-  const updates = req.body;
-  if (updates.userId && !mongoose.Types.ObjectId.isValid(updates.userId)) {
-    throw new ApiError(400, 'Invalid user ID');
-  }
-
-  if (updates.userId) {
-    updates.userId = new mongoose.Types.ObjectId(updates.userId);
-  }
-
   const updatedNotification = await Notification.findByIdAndUpdate(
-    req.params.id,
-    updates,
+    id,
+    req.body,
     { new: true }
-  ).populate('userId');
+  );
 
   if (!updatedNotification) {
     throw new ApiError(404, 'Notification not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Notification updated successfully',
-    data: { notification: updatedNotification },
-    meta: { id: updatedNotification._id }
-  });
+  return ApiResponse.success(res, 'Notification updated successfully', { notification: updatedNotification });
 });
 
 // Delete a notification
 export const deleteNotification = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+  const { id } = req.params;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid notification ID');
   }
 
-  const deletedNotification = await Notification.findByIdAndDelete(req.params.id);
+  const deletedNotification = await Notification.findByIdAndDelete(id);
   if (!deletedNotification) {
     throw new ApiError(404, 'Notification not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Notification deleted successfully',
-    meta: { id: deletedNotification._id }
+  return ApiResponse.success(res, 'Notification deleted successfully');
+});
+
+// Get user notifications
+export const getUserNotifications = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const notifications = await NotificationModel.find({ userId: req.user._id })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await NotificationModel.countDocuments({ userId: req.user._id });
+
+  return ApiResponse.paginated(res, 'Notifications retrieved successfully', {
+    notifications: notifications.map(n => n.toJSON())
+  }, {
+    total,
+    page,
+    limit
   });
 });
+
+// Mark notification as read
+export const markAsRead = asyncHandler(async (req, res) => {
+  const notification = await NotificationModel.findOneAndUpdate(
+    { _id: req.params.id, userId: req.user._id },
+    { isRead: true },
+    { new: true }
+  );
+
+  if (!notification) {
+    throw new ApiError(404, 'Notification not found');
+  }
+
+  return ApiResponse.success(res, 'Notification marked as read', {
+    notification: notification.toJSON()
+  });
+});
+
+// Mark all notifications as read
+export const markAllAsRead = asyncHandler(async (req, res) => {
+  await NotificationModel.updateMany(
+    { userId: req.user._id, isRead: false },
+    { isRead: true }
+  );
+
+  return ApiResponse.success(res, 'All notifications marked as read');
+});
+
+// Get unread notification count
+export const getUnreadCount = asyncHandler(async (req, res) => {
+  const count = await NotificationModel.countDocuments({
+    userId: req.user._id,
+    isRead: false
+  });
+
+  return ApiResponse.success(res, 'Unread notification count retrieved', { count });
+});
+
+// Create notification (internal use)
+export const createNotificationInternal = async (userId, title, message, type, data = {}) => {
+  try {
+    const notification = new NotificationModel({
+      userId,
+      title,
+      message,
+      type,
+      data
+    });
+
+    await notification.save();
+    return notification;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    throw error;
+  }
+};

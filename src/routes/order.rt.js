@@ -1,11 +1,11 @@
 import express from 'express';
 const router = express.Router();
 import * as orderController from '../controllers/order.ct.js';
-import { verifyToken } from '../middleware/auth.middleware.js';
+import { verifyToken } from '../middleware/auth.mw.js';
 import { upload, compressFiles } from '../middleware/fileUpload.mw.js';
 
 // GET all ordersgit 
-router.get('/', orderController.getOrders);
+router.get('/', orderController.getAllOrders);
 
 // GET today's orders
 router.get('/today', orderController.getTodayOrders);

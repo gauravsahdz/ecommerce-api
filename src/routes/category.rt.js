@@ -1,7 +1,7 @@
 // src/routes/categoryRoutes.js
 import express from 'express';
 import * as categoryController from '../controllers/category.ct.js';
-import { verifyToken } from '../middleware/auth.middleware.js';
+import { verifyToken } from '../middleware/auth.mw.js';
 import { upload, compressFiles } from '../middleware/fileUpload.mw.js';
 
 const router = express.Router();

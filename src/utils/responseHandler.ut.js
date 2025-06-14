@@ -1,96 +1,19 @@
 /**
- * Global response handler for consistent API responses
- */
-export const responseHandler = {
-  /**
-   * Success response handler
-   * @param {Object} res - Express response object
-   * @param {number} statusCode - HTTP status code
-   * @param {string} message - Success message
-   * @param {Object} data - Response data
-   * @param {Object} meta - Additional metadata
-   */
-  success: (res, { statusCode = 200, message = 'Success', data = null, meta = {} } = {}) => {
-    const response = {
-      type: 'OK',
-      message,
-      ...(data && { data }),
-      meta: {
-        timestamp: new Date().toISOString(),
-        ...meta
-      }
-    };
-    return res.status(statusCode).json(response);
-  },
-
-  /**
-   * Error response handler
-   * @param {Object} res - Express response object
-   * @param {number} statusCode - HTTP status code
-   * @param {string} message - Error message
-   * @param {Object} meta - Additional metadata
-   */
-  error: (res, { statusCode = 500, message = 'Internal Server Error', meta = {} } = {}) => {
-    const response = {
-      type: 'ERROR',
-      message,
-      meta: {
-        timestamp: new Date().toISOString(),
-        ...meta
-      }
-    };
-    return res.status(statusCode).json(response);
-  },
-
-  /**
-   * List response handler with pagination
-   * @param {Object} res - Express response object
-   * @param {Object} data - Response data
-   * @param {Object} pagination - Pagination metadata
-   * @param {Object} filters - Applied filters
-   * @param {Object} sort - Sort information
-   */
-  list: (res, { data, pagination, filters, sort } = {}) => {
-    const response = {
-      type: 'OK',
-      data,
-      meta: {
-        timestamp: new Date().toISOString(),
-        ...pagination,
-        filters: {
-          applied: filters?.applied || null,
-          available: filters?.available || {}
-        },
-        sort: sort || { by: 'createdAt', order: 'desc' }
-      }
-    };
-    return res.status(200).json(response);
-  }
-};
-
-/**
  * Global error handler for async functions
  * @param {Function} fn - Async function to wrap
  * @returns {Function} Express middleware function
  */
-export const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch((error) => {
-    console.error('Async Error:', error);
-    responseHandler.error(res, {
-      statusCode: error.statusCode || 500,
-      message: error.message || 'Internal Server Error',
-      meta: {
-        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      }
-    });
-  });
+export const asyncHandler = (fn) => {
+  return function(req, res, next) {
+    return Promise.resolve(fn(req, res, next)).catch(next);
+  };
 };
 
 /**
  * Custom error class for API errors
  */
 export class ApiError extends Error {
-  constructor(statusCode, message) {
+  constructor(message, statusCode) {
     super(message);
     this.statusCode = statusCode;
     this.name = this.constructor.name;
@@ -139,30 +62,128 @@ export const handleDuplicateKeyError = (error) => {
  * Global error handler middleware
  */
 export const globalErrorHandler = (err, req, res, next) => {
-  console.error('Global Error:', err);
+  console.error(err.stack);
 
   if (err instanceof ApiError) {
-    return responseHandler.error(res, {
-      statusCode: err.statusCode,
-      message: err.message
+    return res.status(err.statusCode).json({
+      type: 'ERROR',
+      message: err.message,
+      data: null
     });
   }
 
   if (err.name === 'ValidationError') {
-    const errorResponse = handleValidationError(err);
-    return responseHandler.error(res, errorResponse);
+    return res.status(400).json({
+      type: 'ERROR',
+      message: 'Validation failed',
+      data: {
+        errors: Object.values(err.errors).map(e => e.message)
+      }
+    });
+  }
+
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      type: 'ERROR',
+      message: 'Invalid token',
+      data: null
+    });
+  }
+
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      type: 'ERROR',
+      message: 'Token expired',
+      data: null
+    });
+  }
+
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      type: 'ERROR',
+      message: 'Invalid ID format',
+      data: null
+    });
   }
 
   if (err.code === 11000) {
-    const errorResponse = handleDuplicateKeyError(err);
-    return responseHandler.error(res, errorResponse);
+    return res.status(400).json({
+      type: 'ERROR',
+      message: 'Duplicate field value entered',
+      data: null
+    });
   }
 
-  return responseHandler.error(res, {
-    statusCode: 500,
-    message: 'Internal Server Error',
-    meta: {
-      error: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    }
+  return res.status(500).json({
+    type: 'ERROR',
+    message: 'Something went wrong!',
+    data: null
   });
-}; 
+};
+
+/**
+ * Standard API response format
+ */
+export class ApiResponse {
+  static success(res, message, data = null, statusCode = 200) {
+    return res.status(statusCode).json({
+      type: 'OK',
+      message,
+      data
+    });
+  }
+
+  static error(res, message, statusCode = 500, data = null) {
+    return res.status(statusCode).json({
+      type: 'ERROR',
+      message,
+      data
+    });
+  }
+
+  static validationError(res, errors) {
+    return res.status(400).json({
+      type: 'ERROR',
+      message: 'Validation failed',
+      data: {
+        errors
+      }
+    });
+  }
+
+  static notFound(res, message = 'Resource not found') {
+    return res.status(404).json({
+      type: 'ERROR',
+      message,
+      data: null
+    });
+  }
+
+  static unauthorized(res, message = 'Unauthorized access') {
+    return res.status(401).json({
+      type: 'ERROR',
+      message,
+      data: null
+    });
+  }
+
+  static forbidden(res, message = 'Forbidden access') {
+    return res.status(403).json({
+      type: 'ERROR',
+      message,
+      data: null
+    });
+  }
+
+  static paginated(res, message, data, pagination) {
+    return res.json({
+      type: 'OK',
+      message,
+      data,
+      meta: {
+        timestamp: new Date().toISOString(),
+        ...pagination
+      }
+    });
+  }
+} 

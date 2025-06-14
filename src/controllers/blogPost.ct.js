@@ -1,6 +1,6 @@
-import BlogPost from '../models/BlogPost.mo.js';
+import BlogPostModel  from '../models/BlogPost.mo.js';
+import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
-import { responseHandler, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 
 // Get all blog posts with filters
 export const getBlogs = asyncHandler(async (req, res) => {
@@ -29,10 +29,10 @@ export const getBlogs = asyncHandler(async (req, res) => {
   const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
   // Get total count
-  const total = await BlogPost.countDocuments(filter);
+  const total = await BlogPostModel.countDocuments(filter);
 
   // Get paginated results
-  const blogPosts = await BlogPost.find(filter)
+  const blogPosts = await BlogPostModel.find(filter)
     .populate('author')
     .sort(sort)
     .skip(skip)
@@ -43,16 +43,13 @@ export const getBlogs = asyncHandler(async (req, res) => {
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
 
-  return responseHandler.list(res, {
-    data: { blogPosts },
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages,
-      hasNextPage,
-      hasPrevPage
-    },
+  return ApiResponse.paginated(res, 'Blog posts retrieved successfully', { blogPosts }, {
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
     filters: {
       applied: Object.keys(filter).length > 0 ? filter : null,
       available: {
@@ -78,7 +75,7 @@ export const createBlogPost = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid author ID');
   }
 
-  const blogPost = new BlogPost({
+  const blogPost = new BlogPostModel({
     title,
     content,
     author: author ? new mongoose.Types.ObjectId(author) : undefined,
@@ -90,17 +87,13 @@ export const createBlogPost = asyncHandler(async (req, res) => {
 
   const savedBlogPost = await blogPost.save();
   
-  return responseHandler.success(res, {
-    statusCode: 201,
-    message: 'Blog post created successfully',
-    data: { blogPost: savedBlogPost },
-    meta: { id: savedBlogPost._id }
-  });
+  return ApiResponse.success(res, 'Blog post created successfully', { blogPost: savedBlogPost }, 201);
 });
 
 // Update a blog post
 export const updateBlogPost = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+  const { id } = req.params;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid blog post ID');
   }
 
@@ -117,8 +110,8 @@ export const updateBlogPost = asyncHandler(async (req, res) => {
     updates.publishedAt = new Date(updates.publishedAt);
   }
 
-  const updatedBlogPost = await BlogPost.findByIdAndUpdate(
-    req.params.id,
+  const updatedBlogPost = await BlogPostModel.findByIdAndUpdate(
+    id,
     updates,
     { new: true }
   ).populate('author');
@@ -127,26 +120,20 @@ export const updateBlogPost = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Blog post not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Blog post updated successfully',
-    data: { blogPost: updatedBlogPost },
-    meta: { id: updatedBlogPost._id }
-  });
+  return ApiResponse.success(res, 'Blog post updated successfully', { blogPost: updatedBlogPost });
 });
 
 // Delete a blog post
 export const deleteBlogPost = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+  const { id } = req.params;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid blog post ID');
   }
 
-  const deletedBlogPost = await BlogPost.findByIdAndDelete(req.params.id);
+  const deletedBlogPost = await BlogPostModel.findByIdAndDelete(id);
   if (!deletedBlogPost) {
     throw new ApiError(404, 'Blog post not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Blog post deleted successfully',
-    meta: { id: deletedBlogPost._id }
-  });
+  return ApiResponse.success(res, 'Blog post deleted successfully');
 }); 

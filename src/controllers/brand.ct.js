@@ -1,8 +1,8 @@
-const Brand = require('../models/Brand.mo');
-const { handleError } = require('../utils/error-handler');
+import { Brand } from '../models/Brand.mo.js';
+import { ApiResponse } from '../utils/responseHandler.ut.js';
 
 // Get all brands
-exports.getBrands = async (req, res) => {
+export const getBrands = async (req, res) => {
   try {
     const { searchTerm } = req.query;
     const filter = {};
@@ -12,38 +12,38 @@ exports.getBrands = async (req, res) => {
     }
 
     const brands = await Brand.find(filter).sort({ name: 1 });
-    res.json({ data: { brands } });
+    return ApiResponse.success(res, 'Brands retrieved successfully', { brands });
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to retrieve brands');
   }
 };
 
 // Get a single brand
-exports.getBrand = async (req, res) => {
+export const getBrand = async (req, res) => {
   try {
     const brand = await Brand.findById(req.params.id);
     if (!brand) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return ApiResponse.notFound(res, 'Brand not found');
     }
-    res.json({ data: { brand } });
+    return ApiResponse.success(res, 'Brand retrieved successfully', { brand });
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to retrieve brand');
   }
 };
 
 // Create a new brand
-exports.createBrand = async (req, res) => {
+export const createBrand = async (req, res) => {
   try {
     const brand = new Brand(req.body);
     await brand.save();
-    res.status(201).json({ data: { brand } });
+    return ApiResponse.success(res, 'Brand created successfully', { brand }, 201);
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to create brand');
   }
 };
 
 // Update a brand
-exports.updateBrand = async (req, res) => {
+export const updateBrand = async (req, res) => {
   try {
     const brand = await Brand.findByIdAndUpdate(
       req.params.id,
@@ -51,58 +51,58 @@ exports.updateBrand = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!brand) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return ApiResponse.notFound(res, 'Brand not found');
     }
-    res.json({ data: { brand } });
+    return ApiResponse.success(res, 'Brand updated successfully', { brand });
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to update brand');
   }
 };
 
 // Delete a brand
-exports.deleteBrand = async (req, res) => {
+export const deleteBrand = async (req, res) => {
   try {
     const brand = await Brand.findByIdAndDelete(req.params.id);
     if (!brand) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return ApiResponse.notFound(res, 'Brand not found');
     }
-    res.json({ data: { message: 'Brand deleted successfully' } });
+    return ApiResponse.success(res, 'Brand deleted successfully');
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to delete brand');
   }
 };
 
 // Add an order placed
-exports.addOrderPlaced = async (req, res) => {
+export const addOrderPlaced = async (req, res) => {
   try {
     const brand = await Brand.findById(req.params.id);
     if (!brand) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return ApiResponse.notFound(res, 'Brand not found');
     }
 
     brand.orderPlaced.push(req.body);
     await brand.save();
 
-    res.status(201).json({ data: { brand } });
+    return ApiResponse.success(res, 'Order added successfully', { brand }, 201);
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to add order');
   }
 };
 
 // Update order placed status
-exports.updateOrderPlacedStatus = async (req, res) => {
+export const updateOrderPlacedStatus = async (req, res) => {
   try {
     const { brandId, orderId } = req.params;
     const { status, deliveryDate, notes } = req.body;
 
     const brand = await Brand.findById(brandId);
     if (!brand) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return ApiResponse.notFound(res, 'Brand not found');
     }
 
     const order = brand.orderPlaced.id(orderId);
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return ApiResponse.notFound(res, 'Order not found');
     }
 
     order.status = status;
@@ -110,43 +110,43 @@ exports.updateOrderPlacedStatus = async (req, res) => {
     if (notes) order.notes = notes;
 
     await brand.save();
-    res.json({ data: { brand } });
+    return ApiResponse.success(res, 'Order status updated successfully', { brand });
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to update order status');
   }
 };
 
 // Add an out of stock order
-exports.addOutOfStockOrder = async (req, res) => {
+export const addOutOfStockOrder = async (req, res) => {
   try {
     const brand = await Brand.findById(req.params.id);
     if (!brand) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return ApiResponse.notFound(res, 'Brand not found');
     }
 
     brand.outOfStockOrders.push(req.body);
     await brand.save();
 
-    res.status(201).json({ data: { brand } });
+    return ApiResponse.success(res, 'Out of stock order added successfully', { brand }, 201);
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to add out of stock order');
   }
 };
 
 // Update out of stock order status
-exports.updateOutOfStockOrderStatus = async (req, res) => {
+export const updateOutOfStockOrderStatus = async (req, res) => {
   try {
     const { brandId, orderId } = req.params;
     const { status, notes } = req.body;
 
     const brand = await Brand.findById(brandId);
     if (!brand) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return ApiResponse.notFound(res, 'Brand not found');
     }
 
     const order = brand.outOfStockOrders.id(orderId);
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return ApiResponse.notFound(res, 'Order not found');
     }
 
     order.status = status;
@@ -156,8 +156,8 @@ exports.updateOutOfStockOrderStatus = async (req, res) => {
     if (notes) order.notes = notes;
 
     await brand.save();
-    res.json({ data: { brand } });
+    return ApiResponse.success(res, 'Out of stock order status updated successfully', { brand });
   } catch (error) {
-    handleError(res, error);
+    return ApiResponse.error(res, 'Failed to update out of stock order status');
   }
 }; 

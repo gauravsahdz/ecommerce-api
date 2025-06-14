@@ -1,11 +1,13 @@
 import express from 'express';
-import { createActivityLog, getActivityLogs } from '../controllers/activityLog.ct.js';
+import { ActivityLogController } from '../controllers/activityLog.ct.js';
 const router = express.Router();
 
-// POST create a new activity log
-router.post('/', createActivityLog);
+const activityLogController = new ActivityLogController();
 
-// GET all activity logs (latest 200)
-router.get('/', getActivityLogs);
+// POST create a new activity log
+router.post('/', activityLogController.logActivity.bind(activityLogController));
+
+// GET all activity logs
+router.get('/', activityLogController.getActivityLogs.bind(activityLogController));
 
 export default router; 

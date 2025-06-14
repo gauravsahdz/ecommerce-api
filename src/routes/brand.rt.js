@@ -1,10 +1,11 @@
-const express = require('express');
+import express from 'express';
+import * as brandController from '../controllers/brand.ct.js';
+import { verifyToken } from '../middleware/auth.mw.js';
+
 const router = express.Router();
-const brandController = require('../controllers/brand.ct');
-const { authenticateToken } = require('../middleware/auth');
 
 // Apply authentication middleware to all routes
-router.use(authenticateToken);
+router.use(verifyToken);
 
 // Brand CRUD operations
 router.get('/', brandController.getBrands);
@@ -21,4 +22,4 @@ router.put('/:brandId/orders/:orderId', brandController.updateOrderPlacedStatus)
 router.post('/:id/out-of-stock', brandController.addOutOfStockOrder);
 router.put('/:brandId/out-of-stock/:orderId', brandController.updateOutOfStockOrderStatus);
 
-module.exports = router; 
+export default router; 

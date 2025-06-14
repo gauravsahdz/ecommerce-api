@@ -1,6 +1,9 @@
-import Product from '../models/Product.mo.js';
+import { Product } from '../models/Product.mo.js';
 import mongoose from 'mongoose';
-import { responseHandler, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
+import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
+import path from 'path';
+import fs from 'fs';
+import sharp from 'sharp';
 
 // Get products with filters or a single product by ID
 export const getProducts = asyncHandler(async (req, res) => {
@@ -28,9 +31,7 @@ export const getProducts = asyncHandler(async (req, res) => {
       throw new ApiError(404, 'Product not found');
     }
 
-    return responseHandler.success(res, {
-      data: { product }
-    });
+    return ApiResponse.success(res, 'Product retrieved successfully', { product });
   }
 
   // Build filter for list operation
@@ -62,16 +63,13 @@ export const getProducts = asyncHandler(async (req, res) => {
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
 
-  return responseHandler.list(res, {
-    data: { products },
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages,
-      hasNextPage,
-      hasPrevPage
-    },
+  return ApiResponse.paginated(res, 'Products retrieved successfully', { products }, {
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
     filters: {
       applied: Object.keys(filter).length > 0 ? filter : null,
       available: {
@@ -91,78 +89,88 @@ export const getProducts = asyncHandler(async (req, res) => {
 });
 
 // Create a new product
-export const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, price, categoryId, inStock, sku, lowStockThreshold, availableSizes } = req.body;
+export const createProduct = async (req, res) => {
+  try {
+    const { name, description, price, sku, categoryId, brandId, compareAtPrice, costPrice, stock, lowStockThreshold, availableSizes, colors, weight, dimensions, tags, status, isFeatured, seo, ratings } = req.body;
+    const files = req.files;
 
-  if (categoryId && !mongoose.Types.ObjectId.isValid(categoryId)) {
-    throw new ApiError(400, 'Invalid category ID');
-  }
+    if (!name || !description || !price || !sku || !categoryId) {
+      return res.status(400).json({
+        type: 'ERROR',
+        message: 'Missing required fields: name, description, price, sku, categoryId',
+        data: null
+      });
+    }
 
-  // Process uploaded files
-  let imageUrl = null;
-  const media = [];
-  
-  if (req.files && req.files.length > 0) {
-    // First file becomes the main image
-    const mainFilePath = req.files[0].path;
-    // Convert absolute path to relative path for storage
-    imageUrl = mainFilePath.split('uploads')[1];
-    // Ensure path starts with /
-    imageUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-    // Prepend /uploads to make it a proper URL path
-    imageUrl = `/uploads${imageUrl}`;
-    
-    // Additional files become media
-    if (req.files.length > 1) {
-      for (let i = 1; i < req.files.length; i++) {
-        const filePath = req.files[i].path;
-        // Convert absolute path to relative path for storage
-        let mediaPath = filePath.split('uploads')[1];
-        // Ensure path starts with /
-        mediaPath = mediaPath.startsWith('/') ? mediaPath : `/${mediaPath}`;
-        // Prepend /uploads to make it a proper URL path
-        media.push(`/uploads${mediaPath}`);
+    if (!files || files.length === 0) {
+      return res.status(400).json({
+        type: 'ERROR',
+        message: 'No image files uploaded',
+        data: null
+      });
+    }
+
+    const compressedImages = await Promise.all(files.map(async (file) => {
+      const ext = path.extname(file.filename).toLowerCase();
+      const filePath = file.path;
+      const compressedPath = filePath.replace(ext, `-compressed${ext}`);
+
+      try {
+        await sharp(filePath)
+          .resize({ width: 1200 }) // Resize to max width 1200px
+          .jpeg({ quality: 70 }) // Compress JPEG quality
+          .toFile(compressedPath);
+
+        // Remove the original file
+        await fs.promises.unlink(filePath).catch(err => {
+          console.warn(`Could not delete original file ${filePath}: ${err.message}`);
+        });
+
+        return compressedPath;
+      } catch (err) {
+        console.error(`Error processing image ${filePath}: ${err.message}`);
+        return filePath; // Fallback to original file if compression fails
       }
-    }
+    }));
+
+    const product = new Product({
+      name,
+      description,
+      price,
+      sku,
+      categoryId,
+      brandId,
+      compareAtPrice,
+      costPrice,
+      stock,
+      lowStockThreshold,
+      availableSizes,
+      colors,
+      weight,
+      dimensions,
+      tags,
+      status,
+      isFeatured,
+      seo,
+      ratings,
+      imageUrl: compressedImages[0] // Use the first compressed image as the main image
+    });
+
+    await product.save();
+
+    return res.status(201).json({
+      type: 'OK',
+      message: 'Product created successfully',
+      data: product
+    });
+  } catch (error) {
+    return res.status(500).json({
+      type: 'ERROR',
+      message: error.message,
+      data: null
+    });
   }
-
-  // Parse numeric values
-  const parsedPrice = parseFloat(price);
-  const parsedLowStockThreshold = lowStockThreshold ? parseFloat(lowStockThreshold) : undefined;
-  
-  // Parse availableSizes if it's an array in form data
-  let parsedSizes = [];
-  if (availableSizes) {
-    if (Array.isArray(availableSizes)) {
-      parsedSizes = availableSizes;
-    } else {
-      parsedSizes = [availableSizes];
-    }
-  }
-
-  const product = new Product({
-    name,
-    description,
-    price: parsedPrice,
-    categoryId,
-    imageUrl,
-    media,
-    stock: parseInt(req.body.stock) || 0,
-    inStock: inStock === 'true' || inStock === true,
-    sku,
-    lowStockThreshold: parsedLowStockThreshold,
-    availableSizes: parsedSizes
-  });
-
-  const savedProduct = await product.save();
-
-  return responseHandler.success(res, {
-    statusCode: 201,
-    message: 'Product created successfully',
-    data: { product: savedProduct },
-    meta: { id: savedProduct._id }
-  });
-});
+};
 
 // Update a product
 export const updateProduct = asyncHandler(async (req, res) => {
@@ -227,11 +235,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Product not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Product updated successfully',
-    data: { product: updatedProduct },
-    meta: { id: updatedProduct._id }
-  });
+  return ApiResponse.success(res, 'Product updated successfully', { product: updatedProduct });
 });
 
 // Delete a product
@@ -246,8 +250,5 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Product not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Product deleted successfully',
-    meta: { id: deletedProduct._id }
-  });
+  return ApiResponse.success(res, 'Product deleted successfully');
 });

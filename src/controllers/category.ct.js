@@ -1,6 +1,6 @@
-import Category from '../models/Category.mo.js';
+import { Category } from '../models/Category.mo.js';
 import mongoose from 'mongoose';
-import { responseHandler, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
+import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 
 // Get all categories with filters
 export const getCategories = asyncHandler(async (req, res) => {
@@ -38,16 +38,13 @@ export const getCategories = asyncHandler(async (req, res) => {
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
 
-  return responseHandler.list(res, {
-    data: { categories },
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages,
-      hasNextPage,
-      hasPrevPage
-    },
+  return ApiResponse.paginated(res, 'Categories retrieved successfully', { categories }, {
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
     filters: {
       applied: Object.keys(filter).length > 0 ? filter : null,
       available: {
@@ -74,14 +71,23 @@ export const getCategoryById = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Category not found');
   }
 
-  return responseHandler.success(res, {
-    data: { category }
-  });
+  return ApiResponse.success(res, 'Category retrieved successfully', { category });
 });
 
 // Create a new category
 export const createCategory = asyncHandler(async (req, res) => {
-  const { name, description, parentId, slug } = req.body;
+  const { 
+    name, 
+    description, 
+    parentId, 
+    slug,
+    media,
+    icon,
+    isActive,
+    displayOrder,
+    seo,
+    attributes
+  } = req.body;
 
   if (parentId && !mongoose.Types.ObjectId.isValid(parentId)) {
     throw new ApiError(400, 'Invalid parent category ID');
@@ -89,15 +95,10 @@ export const createCategory = asyncHandler(async (req, res) => {
   
   // Get the file path from the uploaded file
   let imageUrl = null;
-  // In createCategory function
   if (req.files && req.files.length > 0) {
-    // Use the compressed file path
     const filePath = req.files[0].path;
-    // Convert absolute path to relative path for storage and replace backslashes with forward slashes
     imageUrl = filePath.split('uploads')[1].replace(/\\/g, '/');
-    // Ensure path starts with /
     imageUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-    // Prepend /uploads to make it a proper URL path
     imageUrl = `/uploads${imageUrl}`;
   }
   
@@ -106,48 +107,30 @@ export const createCategory = asyncHandler(async (req, res) => {
     description,
     parentId,
     imageUrl,
-    slug
+    slug,
+    media: media || [],
+    icon,
+    isActive: isActive !== undefined ? isActive : true,
+    displayOrder: displayOrder || 0,
+    seo: seo || {},
+    attributes: attributes || []
   });
 
   const savedCategory = await category.save();
 
-  return responseHandler.success(res, {
-    statusCode: 201,
-    message: 'Category created successfully',
-    data: savedCategory,
-    meta: { id: savedCategory._id }
-  });
+  return ApiResponse.success(res, 'Category created successfully', { category: savedCategory }, 201);
 });
 
 // Update a category
 export const updateCategory = asyncHandler(async (req, res) => {
-  const { id } = req.query;
+  const { id } = req.params;
   if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid category ID');
   }
 
-  const updates = { ...req.body };
-  
-  // Handle file upload if present
-  // In updateCategory function
-  if (req.files && req.files.length > 0) {
-  // Use the compressed file path
-  const filePath = req.files[0].path;
-  // Convert absolute path to relative path for storage and replace backslashes with forward slashes
-  let imageUrl = filePath.split('uploads')[1].replace(/\\/g, '/');
-  // Ensure path starts with /
-  imageUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-  // Prepend /uploads to make it a proper URL path
-  updates.imageUrl = `/uploads${imageUrl}`;
-  }
-
-  if (updates.parentId && !mongoose.Types.ObjectId.isValid(updates.parentId)) {
-    throw new ApiError(400, 'Invalid parent category ID');
-  }
-
   const updatedCategory = await Category.findByIdAndUpdate(
     id,
-    updates,
+    req.body,
     { new: true }
   );
 
@@ -155,16 +138,12 @@ export const updateCategory = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Category not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Category updated successfully',
-    data: updatedCategory,
-    meta: { id: updatedCategory._id }
-  });
+  return ApiResponse.success(res, 'Category updated successfully', { category: updatedCategory });
 });
 
 // Delete a category
 export const deleteCategory = asyncHandler(async (req, res) => {
-  const { id } = req.query;
+  const { id } = req.params;
   if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid category ID');
   }
@@ -174,8 +153,5 @@ export const deleteCategory = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Category not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Category deleted successfully',
-    meta: { id: deletedCategory._id }
-  });
+  return ApiResponse.success(res, 'Category deleted successfully');
 });

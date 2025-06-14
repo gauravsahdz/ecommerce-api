@@ -1,17 +1,29 @@
 import express from 'express';
+import { 
+  getUserNotifications,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  getUnreadCount
+} from '../controllers/notification.ct.js';
+import { verifyToken } from '../middleware/auth.mw.js';
+import { asyncHandler } from '../utils/responseHandler.ut.js';
+
 const router = express.Router();
-import { createNotification, getNotifications, getNotificationsForUser } from '../controllers/notification.ct.js';
-import { verifyToken } from '../middleware/auth.middleware.js';
 
-// POST route for creating a new notification
-router.post('/', createNotification);
+// Get user notifications
+router.get('/', verifyToken, asyncHandler(getUserNotifications));
 
-// GET all notifications
-router.get('/', getNotifications);
+// Mark notification as read
+router.patch('/:id/read', verifyToken, asyncHandler(markAsRead));
 
-// GET notifications for a user (requires authentication)
-router.get('/me', verifyToken, getNotificationsForUser);
+// Mark all notifications as read
+router.patch('/read-all', verifyToken, asyncHandler(markAllAsRead));
 
-// Remove this redundant TODO comment
+// Delete notification
+router.delete('/:id', verifyToken, asyncHandler(deleteNotification));
+
+// Get unread notification count
+router.get('/unread/count', verifyToken, asyncHandler(getUnreadCount));
 
 export default router;

@@ -1,12 +1,12 @@
 import express from 'express';
 import { 
   getAppSettings, 
-  createAppSetting, 
-  updateAppSetting, 
-  deleteAppSetting,
+  createAppSettings, 
+  updateAppSettings, 
+  deleteAppSettings,
   generateApiKey
 } from '../controllers/appSettings.ct.js';
-import { verifyToken, authorize } from '../middleware/auth.middleware.js';
+import { verifyToken, authorize } from '../middleware/auth.mw.js';
 
 const router = express.Router();
 
@@ -14,9 +14,9 @@ const router = express.Router();
 router.get('/', getAppSettings);
 
 // Protected routes (admin only)
-router.post('/', verifyToken, authorize('Admin'), createAppSetting);
-router.put('/:id', verifyToken, authorize('Admin'), updateAppSetting);
-router.delete('/:id', verifyToken, authorize('Admin'), deleteAppSetting);
+router.post('/', verifyToken, authorize('Admin'), createAppSettings);
+router.put('/:id', verifyToken, authorize('Admin'), updateAppSettings);
+router.delete('/:id', verifyToken, authorize('Admin'), deleteAppSettings);
 router.post('/generate-api-key', verifyToken, authorize('Admin'), generateApiKey);
 
 export default router; 

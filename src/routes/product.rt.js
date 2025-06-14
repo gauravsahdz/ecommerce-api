@@ -5,7 +5,7 @@ import {
   updateProduct, 
   deleteProduct 
 } from '../controllers/product.ct.js';
-import { verifyToken, authorize } from '../middleware/auth.middleware.js';
+import { verifyToken, authorize } from '../middleware/auth.mw.js';
 import { upload, compressFiles } from '../middleware/fileUpload.mw.js';
 
 const router = express.Router();

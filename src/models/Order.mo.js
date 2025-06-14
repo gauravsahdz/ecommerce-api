@@ -18,7 +18,6 @@ const OrderItemSchema = new Schema({
   selectedSize: { type: String },
 }, { _id: false });
 
-
 const OrderSchema = new Schema(
   {
     customerInfo: { type: CustomerInfoSchema, required: true },
@@ -41,7 +40,6 @@ OrderSchema.virtual('id').get(function () {
   return this._id.toHexString();
 });
 
+const Order = mongoose.models.Order || mongoose.model('Order', OrderSchema);
 
-const OrderModel = mongoose.models.Order || mongoose.model('Order', OrderSchema);
-
-export default OrderModel;
+export { Order };

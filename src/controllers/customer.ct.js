@@ -1,6 +1,6 @@
-import Customer from '../models/Customer.mo.js';
+import CustomerModel from '../models/Customer.mo.js';
 import mongoose from 'mongoose';
-import { responseHandler, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
+import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 
 // Get all customers with filters
 export const getCustomers = asyncHandler(async (req, res) => {
@@ -27,10 +27,10 @@ export const getCustomers = asyncHandler(async (req, res) => {
   const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
   // Get total count
-  const total = await Customer.countDocuments(filter);
+  const total = await CustomerModel.countDocuments(filter);
 
   // Get paginated results
-  const customers = await Customer.find(filter)
+  const customers = await CustomerModel.find(filter)
     .sort(sort)
     .skip(skip)
     .limit(Number(limit));
@@ -40,16 +40,13 @@ export const getCustomers = asyncHandler(async (req, res) => {
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
 
-  return responseHandler.list(res, {
-    data: { customers },
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages,
-      hasNextPage,
-      hasPrevPage
-    },
+  return ApiResponse.paginated(res, 'Customers retrieved successfully', { customers }, {
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
     filters: {
       applied: Object.keys(filter).length > 0 ? filter : null,
       available: {
@@ -68,7 +65,7 @@ export const getCustomers = asyncHandler(async (req, res) => {
 
 // Get a single customer by ID
 export const getCustomerById = asyncHandler(async (req, res) => {
-  const customer = await Customer.findById(req.params.id);
+  const customer = await CustomerModel.findById(req.params.id);
   if (!customer) {
     res.status(404).json({ message: 'Customer not found' });
     return;
@@ -83,7 +80,7 @@ export const getCustomerById = asyncHandler(async (req, res) => {
 export const createCustomer = asyncHandler(async (req, res) => {
   const { name, email, phone, address } = req.body;
 
-  const newCustomer = new Customer({
+  const newCustomer = new CustomerModel({
     name,
     email,
     phone,
@@ -92,22 +89,18 @@ export const createCustomer = asyncHandler(async (req, res) => {
 
   const savedCustomer = await newCustomer.save();
   
-  return responseHandler.success(res, {
-    statusCode: 201,
-    message: 'Customer created successfully',
-    data: { customer: savedCustomer },
-    meta: { id: savedCustomer._id }
-  });
+  return ApiResponse.success(res, 'Customer created successfully', { customer: savedCustomer }, 201);
 });
 
 // Update a customer
 export const updateCustomer = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+  const { id } = req.params;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid customer ID');
   }
 
-  const updatedCustomer = await Customer.findByIdAndUpdate(
-    req.params.id,
+  const updatedCustomer = await CustomerModel.findByIdAndUpdate(
+    id,
     req.body,
     { new: true }
   );
@@ -116,26 +109,20 @@ export const updateCustomer = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Customer not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Customer updated successfully',
-    data: { customer: updatedCustomer },
-    meta: { id: updatedCustomer._id }
-  });
+  return ApiResponse.success(res, 'Customer updated successfully', { customer: updatedCustomer });
 });
 
 // Delete a customer
 export const deleteCustomer = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+  const { id } = req.params;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid customer ID');
   }
 
-  const deletedCustomer = await Customer.findByIdAndDelete(req.params.id);
+  const deletedCustomer = await CustomerModel.findByIdAndDelete(id);
   if (!deletedCustomer) {
     throw new ApiError(404, 'Customer not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Customer deleted successfully',
-    meta: { id: deletedCustomer._id }
-  });
+  return ApiResponse.success(res, 'Customer deleted successfully');
 });

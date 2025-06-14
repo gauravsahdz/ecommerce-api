@@ -1,21 +1,24 @@
 import express from 'express';
 import { 
-  getUsers, 
   createUser, 
   updateUser, 
-  deleteUser 
+  deleteUser,
+  updateOwnProfile, 
+  getAllUsers
 } from '../controllers/user.ct.js';
-import { verifyToken, authorize } from '../middleware/auth.middleware.js';
+import { verifyToken, authorize } from '../middleware/auth.mw.js';
+import { asyncHandler } from '../utils/responseHandler.ut.js';
 
 const router = express.Router();
 
-// All user routes are protected and admin-only
-router.use(verifyToken, authorize('Admin'));
+// User can update their own profile (no admin role required)
+router.put('/profile', verifyToken, asyncHandler(updateOwnProfile));
 
-// User management routes
-router.get('/', getUsers);
-router.post('/', createUser);
-router.put('/', updateUser);
-router.delete('/', deleteUser);
+// Admin-only routes
+router.use(verifyToken);
+router.get('/', authorize('Admin'), asyncHandler(getAllUsers));
+router.post('/', authorize('Admin'), asyncHandler(createUser));
+router.put('/:id', authorize('Admin'), asyncHandler(updateUser));
+router.delete('/:id', authorize('Admin'), asyncHandler(deleteUser));
 
 export default router;

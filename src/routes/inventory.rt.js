@@ -1,10 +1,11 @@
-const express = require('express');
+import express from 'express';
+import * as inventoryController from '../controllers/inventory.ct.js';
+import { verifyToken } from '../middleware/auth.mw.js';
+
 const router = express.Router();
-const inventoryController = require('../controllers/inventory.ct');
-const { authenticateToken } = require('../middleware/auth');
 
 // Apply authentication middleware to all routes
-router.use(authenticateToken);
+router.use(verifyToken);
 
 // Get inventory summary
 router.get('/summary', inventoryController.getInventorySummary);
@@ -24,4 +25,4 @@ router.put('/:id', inventoryController.updateInventoryItem);
 // Delete an inventory item
 router.delete('/:id', inventoryController.deleteInventoryItem);
 
-module.exports = router; 
+export default router; 

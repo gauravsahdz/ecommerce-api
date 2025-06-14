@@ -1,91 +1,168 @@
 import express from 'express';
-import connectDB from './src/config/db.js';
 import cors from 'cors';
-import categoryRoutes from './src/routes/category.rt.js';
-import customerRoutes from './src/routes/customer.rt.js';
-// Import auth routes and middleware
-import authRoutes from './src/routes/auth.rt.js';
-import faqRoutes from './src/routes/faq.rt.js';
-import inventoryItemRoutes from './src/routes/inventoryItem.rt.js';
-import orderRoutes from './src/routes/order.rt.js';
-import productRoutes from './src/routes/product.rt.js';
-import userRoutes from './src/routes/user.rt.js';
-import activityLogRoutes from './src/routes/activityLog.rt.js';
-import appSettingsRoutes from './src/routes/appSettings.rt.js';
-import discountCodeRoutes from './src/routes/discountCode.rt.js';
-import requestLogger from './src/middleware/requestLogger.mw.js';
+import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import path from 'path';
-import { globalErrorHandler } from './src/utils/responseHandler.ut.js';
-import { configDotenv } from 'dotenv';
 import { fileURLToPath } from 'url';
+import logger from './src/utils/logger.ut.js';
+import requestLogger from './src/middleware/requestLogger.mw.js';
+import errorLogger from './src/middleware/errorLogger.mw.js';
+import connectDB from './src/config/db.js';
 
+// Get current directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-configDotenv();
+// Load environment variables from the correct path
+dotenv.config({ path: path.join(__dirname, '.env') });
 
+// Load Swagger document
+const swaggerDocument = YAML.load(path.join(__dirname, 'src/docs/swagger.yaml'));
+
+// Create Express app
 const app = express();
 
-// Swagger setup (YAML)
-const swaggerDocument = YAML.load('./src/docs/swagger.yaml');
-
-// Connect to database
-connectDB();
+// Increase event listener limit
+process.setMaxListeners(20);
 
 // Middleware
-app.use(express.json()); // Parse JSON request bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
-
-// Enable CORS for all origins
 app.use(cors());
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-// Serve the raw swagger.yaml file
-app.get('/api-docs/swagger.yaml', (req, res) => {
-  res.sendFile(path.resolve('./src/docs/swagger.yaml'));
-});
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Request Logger Middleware
+// Request logging middleware
 app.use(requestLogger);
 
-// Auth Routes (should be before auth middleware)
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+logger.info('API Documentation available at /api-docs');
+
+// Import routes
+// Authentication and User Management
+import authRoutes from './src/routes/auth.rt.js';
+import userRoutes from './src/routes/user.rt.js';
+import customerRoutes from './src/routes/customer.rt.js';
+
+// Product Management
+import productRoutes from './src/routes/product.rt.js';
+import categoryRoutes from './src/routes/category.rt.js';
+import brandRoutes from './src/routes/brand.rt.js';
+import inventoryRoutes from './src/routes/inventory.rt.js';
+
+// Order and Sales
+import orderRoutes from './src/routes/order.rt.js';
+import discountCodeRoutes from './src/routes/discountCode.rt.js';
+
+// Content Management
+import blogPostRoutes from './src/routes/blogPost.rt.js';
+import faqRoutes from './src/routes/faq.rt.js';
+
+// System Management
+import notificationRoutes from './src/routes/notification.rt.js';
+import appSettingsRoutes from './src/routes/appSettings.rt.js';
+import activityLogRoutes from './src/routes/activityLog.rt.js';
+
+// Use routes
+// Authentication and User Management
 app.use('/api/auth', authRoutes);
-
-// Basic Route
-app.get('/', (req, res) => res.send('E-commerce Backend API'));
-
-// API Routes
-app.use('/api/categories', categoryRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/faqs', faqRoutes);
-app.use('/api/inventory', inventoryItemRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/activity-logs', activityLogRoutes);
-app.use('/api/app-settings', appSettingsRoutes);
+app.use('/api/customers', customerRoutes);
+
+// Product Management
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/brands', brandRoutes);
+app.use('/api/inventory', inventoryRoutes);
+
+// Order and Sales
+app.use('/api/orders', orderRoutes);
 app.use('/api/discount-codes', discountCodeRoutes);
 
-// 404 Handler - Must be after all routes
-app.use((req, res, next) => {
-  res.status(404).json({
+// Content Management
+app.use('/api/blog-posts', blogPostRoutes);
+app.use('/api/faqs', faqRoutes);
+
+// System Management
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/app-settings', appSettingsRoutes);
+app.use('/api/activity-logs', activityLogRoutes);
+
+// Error logging middleware
+app.use(errorLogger);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  // Log the error
+  logger.error('Error:', err);
+
+  // Handle specific error types
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      type: 'VALIDATION_ERROR',
+      message: err.message,
+      data: null
+    });
+  }
+
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      type: 'UNAUTHORIZED',
+      message: 'Invalid token or unauthorized access',
+      data: null
+    });
+  }
+
+  if (err.name === 'NotFoundError') {
+    return res.status(404).json({
+      type: 'NOT_FOUND',
+      message: err.message,
+      data: null
+    });
+  }
+
+  // Default error response
+  res.status(err.status || 500).json({
     type: 'ERROR',
-    message: `Route ${req.originalUrl} not found`,
-    meta: {
-      timestamp: new Date().toISOString(),
-      method: req.method,
-      path: req.path
-    }
+    message: err.message || 'Something went wrong!',
+    data: null
   });
 });
 
-// Global Error Handler - Must be last
-app.use(globalErrorHandler);
+// Start server function
+const startServer = async () => {
+  try {
+    // Connect to MongoDB
+    await connectDB();
 
-const port = parseInt(process.env.PORT) || 3000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port} - \x1B]8;;http://localhost:${port}\x07Click here to open in browser\x1B]8;;\x07`);
-  console.log(`API Documentation available at http://localhost:${port}/api-docs`);
+    // Start server
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      logger.info(`Server is running on port ${PORT}`);
+      logger.info(`API Documentation available at http://localhost:${PORT}/api-docs`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Handle process termination
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received. Shutting down gracefully...');
+  mongoose.connection.close(false, () => {
+    logger.info('MongoDB connection closed.');
+    process.exit(0);
+  });
 });
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received. Shutting down gracefully...');
+  mongoose.connection.close(false, () => {
+    logger.info('MongoDB connection closed.');
+    process.exit(0);
+  });
+});
+
+// Start the server
+startServer();

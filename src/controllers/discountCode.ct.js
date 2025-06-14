@@ -1,6 +1,6 @@
-import DiscountCode from '../models/DiscountCode.mo.js';
+import  DiscountCodeModel from '../models/DiscountCode.mo.js';
 import mongoose from 'mongoose';
-import { responseHandler, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
+import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 
 // Get all discount codes with filters
 export const getDiscountCodes = asyncHandler(async (req, res) => {
@@ -40,10 +40,10 @@ export const getDiscountCodes = asyncHandler(async (req, res) => {
   const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
   // Get total count
-  const total = await DiscountCode.countDocuments(filter);
+  const total = await DiscountCodeModel.countDocuments(filter);
 
   // Get paginated results
-  const discountCodes = await DiscountCode.find(filter)
+  const discountCodes = await DiscountCodeModel.find(filter)
     .populate('productIds')
     .populate('categoryIds')
     .sort(sort)
@@ -55,16 +55,13 @@ export const getDiscountCodes = asyncHandler(async (req, res) => {
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
 
-  return responseHandler.list(res, {
-    data: { discountCodes },
-    pagination: {
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages,
-      hasNextPage,
-      hasPrevPage
-    },
+  return ApiResponse.paginated(res, 'Discount codes retrieved successfully', { discountCodes }, {
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
     filters: {
       applied: Object.keys(filter).length > 0 ? filter : null,
       available: {
@@ -125,7 +122,7 @@ export const createDiscountCode = asyncHandler(async (req, res) => {
     }
   }
 
-  const newDiscountCode = new DiscountCode({
+  const newDiscountCode = new DiscountCodeModel({
     code,
     type,
     value,
@@ -141,17 +138,13 @@ export const createDiscountCode = asyncHandler(async (req, res) => {
 
   const savedDiscountCode = await newDiscountCode.save();
   
-  return responseHandler.success(res, {
-    statusCode: 201,
-    message: 'Discount code created successfully',
-    data: { discountCode: savedDiscountCode },
-    meta: { id: savedDiscountCode._id }
-  });
+  return ApiResponse.success(res, 'Discount code created successfully', { discountCode: savedDiscountCode }, 201);
 });
 
 // Update a discount code
 export const updateDiscountCode = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+  const { id } = req.params;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid discount code ID');
   }
 
@@ -186,8 +179,8 @@ export const updateDiscountCode = asyncHandler(async (req, res) => {
   if (updates.startDate) updates.startDate = new Date(updates.startDate);
   if (updates.endDate) updates.endDate = new Date(updates.endDate);
 
-  const updatedDiscountCode = await DiscountCode.findByIdAndUpdate(
-    req.params.id,
+  const updatedDiscountCode = await DiscountCodeModel.findByIdAndUpdate(
+    id,
     updates,
     { new: true }
   ).populate('productIds')
@@ -197,26 +190,20 @@ export const updateDiscountCode = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Discount code not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Discount code updated successfully',
-    data: { discountCode: updatedDiscountCode },
-    meta: { id: updatedDiscountCode._id }
-  });
+  return ApiResponse.success(res, 'Discount code updated successfully', { discountCode: updatedDiscountCode });
 });
 
 // Delete a discount code
 export const deleteDiscountCode = asyncHandler(async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+  const { id } = req.params;
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid discount code ID');
   }
 
-  const deletedDiscountCode = await DiscountCode.findByIdAndDelete(req.params.id);
+  const deletedDiscountCode = await DiscountCodeModel.findByIdAndDelete(id);
   if (!deletedDiscountCode) {
     throw new ApiError(404, 'Discount code not found');
   }
 
-  return responseHandler.success(res, {
-    message: 'Discount code deleted successfully',
-    meta: { id: deletedDiscountCode._id }
-  });
+  return ApiResponse.success(res, 'Discount code deleted successfully');
 }); 
