@@ -62,6 +62,6 @@ FAQSchema.index({ isActive: 1 });
 FAQSchema.index({ displayOrder: 1 });
 FAQSchema.index({ createdAt: -1 });
 
-const FAQ = mongoose.models.FAQ || mongoose.model('FAQ', FAQSchema);
+const FAQModel = mongoose.models.FAQ || mongoose.model('FAQ', FAQSchema);
 
-export { FAQ };
+export default FAQModel;
