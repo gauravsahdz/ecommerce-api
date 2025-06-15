@@ -1,4 +1,4 @@
-import NotificationModel from '../models/notification.mo.js';
+import NotificationModel from '../models/Notification.mo.js';
 import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
 
