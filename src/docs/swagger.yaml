@@ -198,10 +198,6 @@ components:
           type: object
         meta:
           type: object
-          properties:
-            id:
-              type: string
-              format: uuid
 
     PaginatedResponse:
       allOf:
@@ -474,6 +470,68 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    DashboardStats:
+      type: object
+      properties:
+        todayStats:
+          type: object
+          properties:
+            orders:
+              type: integer
+              description: Number of orders today
+            revenue:
+              type: number
+              format: float
+              description: Total revenue today
+        overallStats:
+          type: object
+          properties:
+            totalOrders:
+              type: integer
+              description: Total number of orders
+            totalRevenue:
+              type: number
+              format: float
+              description: Total revenue
+            totalCustomers:
+              type: integer
+              description: Total number of customers
+        salesOverview:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                description: Date of sales
+              revenue:
+                type: number
+                format: float
+                description: Revenue for the day
+              orders:
+                type: integer
+                description: Number of orders for the day
+        topSellingProducts:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+                format: uuid
+                description: Product ID
+              productName:
+                type: string
+                description: Name of the product
+              totalQuantity:
+                type: integer
+                description: Total quantity sold
+              totalRevenue:
+                type: number
+                format: float
+                description: Total revenue from this product
 
 paths:
   /auth/register:
@@ -2705,4 +2763,37 @@ paths:
                 $ref: '#/components/schemas/ApiResponse'
                 properties:
                   data:
-                    $ref: '#/components/schemas/BlogPost' 
+                    $ref: '#/components/schemas/BlogPost'
+
+  /dashboard/stats:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard statistics
+      description: Retrieve comprehensive dashboard statistics including today's orders, total revenue, total orders, total customers, sales overview, and top selling products
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DashboardStats'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse' 

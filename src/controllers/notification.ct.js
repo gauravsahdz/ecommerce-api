@@ -1,7 +1,6 @@
-import { Notification } from '../models/Notification.mo.js';
+import { Notification } from '../models/notification.mo.js';
 import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
-import { Notification as NotificationModel } from '../models/notification.m.js';
 
 // Get all notifications with filters
 export const getNotifications = asyncHandler(async (req, res) => {
@@ -190,12 +189,12 @@ export const getUserNotifications = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const notifications = await NotificationModel.find({ userId: req.user._id })
+  const notifications = await Notification.find({ userId: req.user._id })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
 
-  const total = await NotificationModel.countDocuments({ userId: req.user._id });
+  const total = await Notification.countDocuments({ userId: req.user._id });
 
   return ApiResponse.paginated(res, 'Notifications retrieved successfully', {
     notifications: notifications.map(n => n.toJSON())
@@ -208,7 +207,7 @@ export const getUserNotifications = asyncHandler(async (req, res) => {
 
 // Mark notification as read
 export const markAsRead = asyncHandler(async (req, res) => {
-  const notification = await NotificationModel.findOneAndUpdate(
+  const notification = await Notification.findOneAndUpdate(
     { _id: req.params.id, userId: req.user._id },
     { isRead: true },
     { new: true }
@@ -225,7 +224,7 @@ export const markAsRead = asyncHandler(async (req, res) => {
 
 // Mark all notifications as read
 export const markAllAsRead = asyncHandler(async (req, res) => {
-  await NotificationModel.updateMany(
+  await Notification.updateMany(
     { userId: req.user._id, isRead: false },
     { isRead: true }
   );
@@ -235,7 +234,7 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
 
 // Get unread notification count
 export const getUnreadCount = asyncHandler(async (req, res) => {
-  const count = await NotificationModel.countDocuments({
+  const count = await Notification.countDocuments({
     userId: req.user._id,
     isRead: false
   });
@@ -246,7 +245,7 @@ export const getUnreadCount = asyncHandler(async (req, res) => {
 // Create notification (internal use)
 export const createNotificationInternal = async (userId, title, message, type, data = {}) => {
   try {
-    const notification = new NotificationModel({
+    const notification = new Notification({
       userId,
       title,
       message,

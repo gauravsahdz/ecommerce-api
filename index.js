@@ -56,6 +56,7 @@ import inventoryRoutes from './src/routes/inventory.rt.js';
 // Order and Sales
 import orderRoutes from './src/routes/order.rt.js';
 import discountCodeRoutes from './src/routes/discountCode.rt.js';
+import dashboardRoutes from './src/routes/dashboard.rt.js';
 
 // Content Management
 import blogPostRoutes from './src/routes/blogPost.rt.js';
@@ -81,6 +82,7 @@ app.use('/api/inventory', inventoryRoutes);
 // Order and Sales
 app.use('/api/orders', orderRoutes);
 app.use('/api/discount-codes', discountCodeRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Content Management
 app.use('/api/blog-posts', blogPostRoutes);
