@@ -120,6 +120,6 @@ notificationSchema.set('toJSON', {
   }
 });
 
-const Notification = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);
+const NotificationModel = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);
 
-export { Notification }; 
+export default NotificationModel;

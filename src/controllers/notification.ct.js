@@ -1,4 +1,4 @@
-import { Notification } from '../models/notification.mo.js';
+import NotificationModel from '../models/notification.mo.js';
 import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
 
@@ -34,10 +34,10 @@ export const getNotifications = asyncHandler(async (req, res) => {
   const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
   // Get total count
-  const total = await Notification.countDocuments(filter);
+  const total = await NotificationModel.countDocuments(filter);
 
   // Get paginated results
-  const notifications = await Notification.find(filter)
+  const notifications = await NotificationModel.find(filter)
     .populate('userId')
     .sort(sort)
     .skip(skip)
@@ -105,10 +105,10 @@ export const getNotificationsForUser = asyncHandler(async (req, res) => {
   const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
   // Get total count
-  const total = await Notification.countDocuments(filter);
+  const total = await NotificationModel.countDocuments(filter);
 
   // Get paginated results
-  const notifications = await Notification.find(filter)
+  const notifications = await NotificationModel.find(filter)
     .sort(sort)
     .skip(skip)
     .limit(Number(limit));
@@ -143,7 +143,7 @@ export const getNotificationsForUser = asyncHandler(async (req, res) => {
 
 // Create a new notification
 export const createNotification = asyncHandler(async (req, res) => {
-  const notification = new Notification(req.body);
+  const notification = new NotificationModel(req.body);
   await notification.save();
   return ApiResponse.success(res, 'Notification created successfully', { notification }, 201);
 });
@@ -155,7 +155,7 @@ export const updateNotification = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid notification ID');
   }
 
-  const updatedNotification = await Notification.findByIdAndUpdate(
+  const updatedNotification = await NotificationModel.findByIdAndUpdate(
     id,
     req.body,
     { new: true }
@@ -175,7 +175,7 @@ export const deleteNotification = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid notification ID');
   }
 
-  const deletedNotification = await Notification.findByIdAndDelete(id);
+  const deletedNotification = await NotificationModel.findByIdAndDelete(id);
   if (!deletedNotification) {
     throw new ApiError(404, 'Notification not found');
   }
@@ -189,12 +189,12 @@ export const getUserNotifications = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const notifications = await Notification.find({ userId: req.user._id })
+  const notifications = await NotificationModel.find({ userId: req.user._id })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
 
-  const total = await Notification.countDocuments({ userId: req.user._id });
+  const total = await NotificationModel.countDocuments({ userId: req.user._id });
 
   return ApiResponse.paginated(res, 'Notifications retrieved successfully', {
     notifications: notifications.map(n => n.toJSON())
@@ -207,7 +207,7 @@ export const getUserNotifications = asyncHandler(async (req, res) => {
 
 // Mark notification as read
 export const markAsRead = asyncHandler(async (req, res) => {
-  const notification = await Notification.findOneAndUpdate(
+  const notification = await NotificationModel.findOneAndUpdate(
     { _id: req.params.id, userId: req.user._id },
     { isRead: true },
     { new: true }
@@ -224,7 +224,7 @@ export const markAsRead = asyncHandler(async (req, res) => {
 
 // Mark all notifications as read
 export const markAllAsRead = asyncHandler(async (req, res) => {
-  await Notification.updateMany(
+  await NotificationModel.updateMany(
     { userId: req.user._id, isRead: false },
     { isRead: true }
   );
@@ -234,7 +234,7 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
 
 // Get unread notification count
 export const getUnreadCount = asyncHandler(async (req, res) => {
-  const count = await Notification.countDocuments({
+  const count = await NotificationModel.countDocuments({
     userId: req.user._id,
     isRead: false
   });
@@ -245,7 +245,7 @@ export const getUnreadCount = asyncHandler(async (req, res) => {
 // Create notification (internal use)
 export const createNotificationInternal = async (userId, title, message, type, data = {}) => {
   try {
-    const notification = new Notification({
+    const notification = new NotificationModel({
       userId,
       title,
       message,
