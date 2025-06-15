@@ -38,6 +38,9 @@ app.use(requestLogger);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 logger.info('API Documentation available at /api-docs');
 
+// serve images from the uploads folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Import routes
 // Authentication and User Management
 import authRoutes from './src/routes/auth.rt.js';

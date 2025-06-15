@@ -153,7 +153,12 @@ export const createProduct = async (req, res) => {
       isFeatured,
       seo,
       ratings,
-      imageUrl: compressedImages[0] // Use the first compressed image as the main image
+      imageUrl: compressedImages[0], // Use the first compressed image as the main image
+      media: compressedImages.slice(1).map(image => ({
+        url: image,
+        type: 'image',
+        alt: ''
+      }))
     });
 
     await product.save();

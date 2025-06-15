@@ -142,8 +142,8 @@ export const updateCategory = asyncHandler(async (req, res) => {
 });
 
 // Delete a category
-export const deleteCategory = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+export const  deleteCategory = asyncHandler(async (req, res) => {
+  const { id } = req.query;
   if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid category ID');
   }
