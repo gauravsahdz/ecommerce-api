@@ -9,7 +9,7 @@ import logger from './src/utils/logger.ut.js';
 import requestLogger from './src/middleware/requestLogger.mw.js';
 import errorLogger from './src/middleware/errorLogger.mw.js';
 import connectDB from './src/config/db.js';
-
+import mongoose from 'mongoose';
 // Get current directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
