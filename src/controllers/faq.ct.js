@@ -1,4 +1,4 @@
-import FAQModel from '../models/FAQ.mo.js';
+import FAQModel from '../models/Faq.mo.js';
 import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
 
