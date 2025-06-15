@@ -130,7 +130,13 @@ const ALL_PERMISSIONS = [
   // Settings Permissions
   'settings:view',
   'settings:edit',
-  'settings:edit_api'
+  'settings:edit_api',
+
+  // Brand Permissions
+  'brand:view_list',
+  'brand:create',
+  'brand:edit',
+  'brand:delete',
 ];
 
 async function createAdminUser(email, password) {

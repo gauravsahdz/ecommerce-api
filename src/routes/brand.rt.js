@@ -1,6 +1,7 @@
 import express from 'express';
 import * as brandController from '../controllers/brand.ct.js';
 import { verifyToken } from '../middleware/auth.mw.js';
+import { upload, compressFiles } from '../middleware/fileUpload.mw.js';
 
 const router = express.Router();
 
@@ -10,8 +11,8 @@ router.use(verifyToken);
 // Brand CRUD operations
 router.get('/', brandController.getBrands);
 router.get('/:id', brandController.getBrand);
-router.post('/', brandController.createBrand);
-router.put('/:id', brandController.updateBrand);
+router.post('/', upload.single('logo'), compressFiles, brandController.createBrand);
+router.put('/:id', upload.single('logo'), compressFiles, brandController.updateBrand);
 router.delete('/:id', brandController.deleteBrand);
 
 // Order placed management

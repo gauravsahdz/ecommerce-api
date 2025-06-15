@@ -120,13 +120,19 @@ export const createUser = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
-  const { id } = req.query;
+  const { id } = req.params;
   if (!id || !mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(400, 'Invalid user ID');
   }
 
   const updates = req.body;
-  const updatedUser = await UserModel.findByIdAndUpdate(id, updates, { new: true });
+  delete updates.password;
+  
+  const updatedUser = await UserModel.findByIdAndUpdate(
+    id, 
+    updates, 
+    { new: true, runValidators: true }
+  ).select('-password');
 
   if (!updatedUser) {
     throw new ApiError(404, 'User not found');

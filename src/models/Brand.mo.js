@@ -25,9 +25,10 @@ const brandSchema = new Schema({
       type: String,
       validate: {
         validator: function(v) {
-          return !v || v.startsWith('http://') || v.startsWith('https://');
+          // Allow both full URLs and relative paths starting with /uploads/
+          return !v || v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/uploads/');
         },
-        message: 'Logo URL must be a valid URL'
+        message: 'Logo URL must be a valid URL or a relative path starting with /uploads/'
       }
     },
     alt: { type: String }

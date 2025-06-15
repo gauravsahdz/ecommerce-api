@@ -34,10 +34,33 @@ export const getBrand = async (req, res) => {
 // Create a new brand
 export const createBrand = async (req, res) => {
   try {
-    const brand = new Brand(req.body);
+    const { name, description, isActive } = req.body;
+    
+    // Handle logo upload
+    let logoUrl = null;
+    if (req.file) {
+      // Convert absolute path to relative path for storage and normalize slashes
+      let imagePath = req.file.path.split('uploads')[1].replace(/\\/g, '/');
+      // Ensure path starts with /
+      imagePath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+      // Prepend /uploads to make it a proper URL path
+      logoUrl = `/uploads${imagePath}`;
+    }
+
+    const brand = new Brand({
+      name,
+      description,
+      logo: logoUrl ? { url: logoUrl } : undefined,
+      isActive: isActive === 'true' || isActive === true
+    });
+
     await brand.save();
     return ApiResponse.success(res, 'Brand created successfully', { brand }, 201);
   } catch (error) {
+    console.error('Create brand error:', error);
+    if (error.code === 11000) {
+      return ApiResponse.error(res, 'Brand with this name already exists', 400);
+    }
     return ApiResponse.error(res, 'Failed to create brand');
   }
 };
@@ -45,16 +68,39 @@ export const createBrand = async (req, res) => {
 // Update a brand
 export const updateBrand = async (req, res) => {
   try {
+    const { id } = req.params;
+    const updates = { ...req.body };
+
+    // Handle logo upload
+    if (req.file) {
+      // Convert absolute path to relative path for storage and normalize slashes
+      let imagePath = req.file.path.split('uploads')[1].replace(/\\/g, '/');
+      // Ensure path starts with /
+      imagePath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+      // Prepend /uploads to make it a proper URL path
+      updates.logo = { url: `/uploads${imagePath}` };
+    }
+
+    // Convert isActive to boolean if it exists
+    if (updates.isActive !== undefined) {
+      updates.isActive = updates.isActive === 'true' || updates.isActive === true;
+    }
+
     const brand = await Brand.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+      id,
+      updates,
       { new: true, runValidators: true }
     );
+
     if (!brand) {
       return ApiResponse.notFound(res, 'Brand not found');
     }
     return ApiResponse.success(res, 'Brand updated successfully', { brand });
   } catch (error) {
+    console.error('Update brand error:', error);
+    if (error.code === 11000) {
+      return ApiResponse.error(res, 'Brand with this name already exists', 400);
+    }
     return ApiResponse.error(res, 'Failed to update brand');
   }
 };
