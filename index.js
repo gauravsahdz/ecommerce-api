@@ -44,7 +44,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Authentication and User Management
 import authRoutes from './src/routes/auth.rt.js';
 import userRoutes from './src/routes/user.rt.js';
-import customerRoutes from './src/routes/customer.rt.js';
 
 // Product Management
 import productRoutes from './src/routes/product.rt.js';
@@ -70,7 +69,6 @@ import activityLogRoutes from './src/routes/activityLog.rt.js';
 // Authentication and User Management
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/customers', customerRoutes);
 
 // Product Management
 app.use('/api/products', productRoutes);

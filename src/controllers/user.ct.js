@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { ApiResponse, ApiError } from '../utils/responseHandler.ut.js';
 
 export const getAllUsers = async (req, res) => {
-  const { page = 1, limit = 10, search, role, isActive } = req.query;
+  const { page = 1, limit = 10, search, role, isActive, id } = req.query;
   const query = {};
 
   if (search) {
@@ -19,6 +19,10 @@ export const getAllUsers = async (req, res) => {
 
   if (isActive !== undefined) {
     query.isActive = isActive === 'true';
+  }
+
+  if (id) {
+    query._id = id;
   }
 
   const users = await UserModel.find(query)

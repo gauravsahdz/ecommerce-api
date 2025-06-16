@@ -3,6 +3,7 @@ import mongoose, { Schema } from 'mongoose';
 const ORDER_STATUSES = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Refunded"];
 
 const CustomerInfoSchema = new Schema({
+  customerId: { type: Schema.Types.ObjectId, ref: 'Customer', index: true },
   name: { type: String, required: true },
   email: { type: String, required: true },
   phone: { type: String },

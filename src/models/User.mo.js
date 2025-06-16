@@ -1,75 +1,68 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import mongoose, { Schema } from 'mongoose';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
-const userSchema = new mongoose.Schema({
+const UserSchema = new Schema({
   name: {
     type: String,
-    required: [true, 'Name is required'],
+    required: true,
     trim: true
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: true,
     unique: true,
     trim: true,
-    lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    lowercase: true
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters long'],
-    select: false
+    required: true,
+    minlength: 6
   },
   role: {
     type: String,
-    enum: ['Admin', 'User'],
-    default: 'User'
+    enum: ['Admin', 'Customer'],
+    default: 'Customer'
   },
-  avatarUrl: {
+  phone: {
     type: String,
-    default: null
+    trim: true
+  },
+  shippingAddress: {
+    type: Object,
+    trim: true
+  },
+  billingAddress: {
+    type: Object,
+    trim: true
   },
   isActive: {
     type: Boolean,
     default: true
   },
-  lastLogin: {
-    type: Date,
-    default: null
-  },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  emailVerificationToken: String,
-  emailVerified: {
+  verificationToken: String,
+  verificationTokenExpires: Date,
+  isVerified: {
     type: Boolean,
     default: false
-  }
+  },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
+  lastLogin: Date
 }, {
-  timestamps: true,
-  toJSON: {
-    virtuals: true,
-    transform: function(doc, ret) {
-      ret.id = ret._id;
-      delete ret._id;
-      delete ret.__v;
-      delete ret.password;
-      return ret;
-    }
-  }
+  timestamps: true
 });
 
 // Virtual for full name
-userSchema.virtual('fullName').get(function() {
+UserSchema.virtual('fullName').get(function() {
   return `${this.name}`;
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
+UserSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -79,41 +72,38 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  try {
-    return await bcrypt.compare(candidatePassword, this.password);
-  } catch (error) {
-    throw error;
-  }
+// Method to compare password
+UserSchema.methods.comparePassword = async function(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
 // Generate password reset token
-userSchema.methods.generatePasswordResetToken = function() {
+UserSchema.methods.generatePasswordResetToken = function() {
   const resetToken = crypto.randomBytes(32).toString('hex');
   this.resetPasswordToken = crypto
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+  this.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   return resetToken;
 };
 
 // Generate email verification token
-userSchema.methods.generateEmailVerificationToken = function() {
+UserSchema.methods.generateEmailVerificationToken = function() {
   const verificationToken = crypto.randomBytes(32).toString('hex');
-  this.emailVerificationToken = crypto
+  this.verificationToken = crypto
     .createHash('sha256')
     .update(verificationToken)
     .digest('hex');
+  this.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
   return verificationToken;
 };
 
-// Additional indexes (excluding email which is already indexed via unique: true)
-userSchema.index({ role: 1 });
-userSchema.index({ isActive: 1 });
-userSchema.index({ createdAt: -1 });
+// Additional indexes
+UserSchema.index({ role: 1 });
+UserSchema.index({ isActive: 1 });
+UserSchema.index({ createdAt: -1 });
 
-const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
+const User = mongoose.model('User', UserSchema);
 
-export default UserModel;
+export default User;

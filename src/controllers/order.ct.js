@@ -1,7 +1,8 @@
 import { Order } from '../models/Order.mo.js';
-import { createNotificationInternal } from './notification.ct.js';
+import { createNotificationInternal } from '../controllers/notification.ct.js';
 import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
+import UserModel from '../models/User.mo.js';
 
 // Get all orders
 export const getAllOrders = asyncHandler(async (req, res) => {
@@ -44,6 +45,45 @@ export const getAllOrders = asyncHandler(async (req, res) => {
   });
 });
 
+// Get orders by current user ID
+export const getOrdersByUserId = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+
+  const skip = (page - 1) * limit;
+  const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
+  // Get total count of orders for this user
+  const total = await Order.countDocuments({ 'customerInfo.customerId': req.user.id });
+
+  // Get paginated orders for this user
+  const orders = await Order.find({ 'customerInfo.customerId': req.user.id })
+    .sort(sort)
+    .skip(skip)
+    .limit(parseInt(limit));
+
+  const totalPages = Math.ceil(total / limit);
+
+  return ApiResponse.success(res, 'Orders retrieved successfully', {
+    orders,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    },
+    filters: {
+      applied: {},
+      available: {}
+    },
+    sort: {
+      by: sortBy,
+      order: sortOrder
+    }
+  });
+});
+
 // Get a single order by ID
 export const getOrderById = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id);
@@ -53,65 +93,82 @@ export const getOrderById = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'Order retrieved successfully', { order });
 });
 
-// Create a new order
-export const createOrder = asyncHandler(async (req, res) => {
-  const { customerInfo, items, totalAmount, status, notes, customerId } = req.body;
-
-  let media = [];
-  if (req.files && req.files.length > 0) {
-    media = req.files.map(file => file.path.replace(/\\/g, '/'));
-  }
-
-  const newOrder = new Order({
-    customerInfo,
-    items,
-    totalAmount,
-    status,
-    notes,
-    customerId,
-    media,
-  });
-
-  const savedOrder = await newOrder.save();
-
+// Helper function to send order notifications
+const sendOrderNotifications = async (order) => {
   try {
-    // Notify the customer about the order creation
-    if (customerId) {
+    const notifications = [];
+
+    // Notify the customer
+    if (order.customerInfo.customerId) {
       await createNotificationInternal(
-        customerId,
+        order.customerInfo.customerId,
         'Order Placed Successfully',
-        'Your order has been placed successfully',
+        `Your order #${order._id} has been placed successfully`,
         'order',
         {
-          orderId: savedOrder._id,
-          orderNumber: savedOrder.orderNumber,
-          totalAmount: savedOrder.totalAmount
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          totalAmount: order.totalAmount
         }
       );
+      notifications.push('customer');
     }
 
-    // Notify the admin about the new order
-    const adminId = '68270a2441ba4976a90722a1'; // Replace with actual admin ID or fetch from database
-    await createNotificationInternal(
-      adminId,
-      'New Order Received',
-      'A new order has been placed',
-      'order',
-      {
-        orderId: savedOrder._id,
-        orderNumber: savedOrder.orderNumber,
-        customerInfo: savedOrder.customerInfo
-      }
-    );
-  } catch (error) {
-    console.error('Error creating notifications:', error);
-    // Continue with order creation even if notifications fail
-  }
+    // Notify the admin
+    const admin = await UserModel.findOne({ role: 'Admin' });
+    if (admin) {
+      await createNotificationInternal(
+        admin._id,
+        'New Order Received',
+        `New order #${order._id} has been placed`,
+        'order',
+        {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          customerInfo: order.customerInfo
+        }
+      );
+      notifications.push('admin');
+    }
 
-  return ApiResponse.success(res, 'Order created successfully', { 
-    order: savedOrder,
+    return notifications;
+  } catch (error) {
+    console.error('Error sending notifications:', error);
+    return [];
+  }
+};
+
+// Create a new order
+export const createOrder = asyncHandler(async (req, res) => {
+  const { customerInfo, items, totalAmount, status, notes } = req.body;
+  const files = req.files;
+
+  // Create order with user ID
+  const order = new Order({
+    customerInfo: {
+      ...customerInfo,
+      customerId: req.user.id // Use user ID as customer ID
+    },
+    items,
+    totalAmount,
+    status: status || "Pending",
+    notes,
+    media: files ? files.map(file => ({
+      url: file.path,
+      type: file.mimetype.startsWith('image/') ? 'image' : 'document',
+      alt: file.originalname
+    })) : []
+  });
+
+  await order.save();
+
+  // Send notifications
+  const notifications = await sendOrderNotifications(order);
+
+  return ApiResponse.success(res, 'Order created successfully', {
+    order,
     notifications: {
-      sent: ['customer', 'admin']
+      sent: notifications
     }
   }, 201);
 });

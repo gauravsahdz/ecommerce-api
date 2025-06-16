@@ -1,5 +1,4 @@
 import {Order} from '../models/Order.mo.js';
-import CustomerModel from '../models/Customer.mo.js';
 import { ApiResponse, asyncHandler } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
 

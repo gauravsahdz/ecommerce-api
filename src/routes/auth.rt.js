@@ -23,8 +23,8 @@ router.get('/verify-email/:token', asyncHandler(verifyEmail));
 
 // Protected routes
 router.use(verifyToken);
-router.get('/profile', asyncHandler(getProfile));
-router.put('/profile', asyncHandler(updateProfile));
-router.put('/change-password', asyncHandler(changePassword));
+router.get('/profile', verifyToken, getProfile);
+router.put('/profile', verifyToken, updateProfile);
+router.put('/change-password', verifyToken, changePassword);
 
 export default router; 

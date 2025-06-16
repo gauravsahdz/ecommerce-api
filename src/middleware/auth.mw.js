@@ -1,65 +1,38 @@
 import jwt from 'jsonwebtoken';
+import { ApiResponse, ApiError } from '../utils/responseHandler.ut.js';
 import UserModel from '../models/User.mo.js';
 
 export const verifyToken = async (req, res, next) => {
   try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        type: 'ERROR',
-        message: 'No token provided',
-        data: null
-      });
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      throw new ApiError(401, 'No token provided');
     }
 
-    const token = authHeader.split(' ')[1];
-
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Get user from database
-    const user = await UserModel.findById(decoded.userId).select('-password');
+    
+    // Get user
+    const user = await UserModel.findById(decoded.userId);
     if (!user) {
-      return res.status(401).json({
-        type: 'ERROR',
-        message: 'User not found',
-        data: null
-      });
+      throw new ApiError(401, 'User not found');
     }
 
-    // Check if user is active
-    if (!user.isActive) {
-      return res.status(401).json({
-        type: 'ERROR',
-        message: 'User account is inactive',
-        data: null
-      });
-    }
-
-    // Add user to request object
-    req.user = user;
+    // Add user info to request
+    req.user = {
+      id: user._id,
+      role: user.role
+    };
+    
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        type: 'ERROR',
-        message: 'Invalid token',
-        data: null
-      });
+      return ApiResponse.error(res, 'Invalid token', 401);
     }
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        type: 'ERROR',
-        message: 'Token expired',
-        data: null
-      });
+      return ApiResponse.error(res, 'Token expired', 401);
     }
-    return res.status(500).json({
-      type: 'ERROR',
-      message: 'Server error',
-      data: null
-    });
+    return ApiResponse.error(res, error.message, error.statusCode || 500);
   }
 };
 

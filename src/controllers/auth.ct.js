@@ -1,47 +1,73 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import UserModel from '../models/User.mo.js';
-import { ApiResponse, ApiError } from '../utils/responseHandler.ut.js';
+import { ApiResponse, ApiError, asyncHandler } from '../utils/responseHandler.ut.js';
+import crypto from 'crypto';
 
-export const register = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-
-    // Check if user already exists
-    const existingUser = await UserModel.findOne({ email });
-    if (existingUser) {
-      return ApiResponse.error(res, 'Email already registered', 400);
-    }
-
-    // Create new user
-    const user = new UserModel({
-      name,
-      email,
-      password
-    });
-
-    // Generate email verification token
-    const verificationToken = user.generateEmailVerificationToken();
-    await user.save();
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    // TODO: Send verification email
-
-    return ApiResponse.success(res, 'Registration successful', {
-      user: user.toJSON(),
-      token
-    }, 201);
-  } catch (error) {
-    console.error('Registration error:', error);
-    return ApiResponse.error(res, 'Registration failed');
-  }
+// Generate JWT token
+const generateToken = (user) => {
+  return jwt.sign(
+    { 
+      userId: user._id,
+      role: user.role 
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '24h' }
+  );
 };
+
+// Send verification email
+const sendVerificationEmail = async (email, token) => {
+  // TODO: Implement email sending logic
+  console.log(`Verification email would be sent to ${email} with token ${token}`);
+};
+
+export const register = asyncHandler(async (req, res) => {
+  const { name, email, password, phone, shippingAddress, billingAddress } = req.body;
+
+  // Check if user already exists
+  const existingUser = await UserModel.findOne({ email });
+  if (existingUser) {
+    throw new ApiError(400, 'Email already registered');
+  }
+
+  // Create new user
+  const user = new UserModel({
+    name,
+    email,
+    password,
+    role: 'Customer',
+    phone,
+    shippingAddress,
+    billingAddress
+  });
+
+  // Generate email verification token
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+  user.verificationToken = verificationToken;
+  user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+  await user.save();
+
+  // Generate JWT token
+  const token = generateToken(user);
+
+  // Send verification email
+  await sendVerificationEmail(email, verificationToken);
+
+  return ApiResponse.success(res, 'Registration successful', {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      shippingAddress: user.shippingAddress,
+      billingAddress: user.billingAddress
+    },
+    token
+  }, 201);
+});
 
 export const login = async (req, res) => {
   try {
@@ -169,7 +195,7 @@ export const resetPassword = async (req, res) => {
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const user = await UserModel.findById(req.user._id).select('+password');
+    const user = await UserModel.findById(req.user.id).select('+password');
 
     // Verify current password
     const isPasswordValid = await user.comparePassword(currentPassword);
@@ -190,7 +216,7 @@ export const changePassword = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    const user = await UserModel.findById(req.user._id);
+    const user = await UserModel.findById(req.user.id);
     return ApiResponse.success(res, 'Profile retrieved successfully', {
       user: user.toJSON()
     });
@@ -202,8 +228,8 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email } = req.body;
-    const user = await UserModel.findById(req.user._id);
+    const {billingAddress, shippingAddress, phone, name, email} = req.body;
+    const user = await UserModel.findById(req.user.id);
 
     // Check if email is already taken
     if (email && email !== user.email) {
@@ -219,6 +245,30 @@ export const updateProfile = async (req, res) => {
 
     if (name) {
       user.name = name;
+    }
+
+    if (phone) {
+      user.phone = phone;
+    }
+
+    if (shippingAddress) {
+      user.shippingAddress = {
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        street: shippingAddress.street,
+        zip: shippingAddress.zip,
+        country: shippingAddress.country
+      };
+    }
+
+    if (billingAddress) {
+      user.billingAddress = {
+        city: billingAddress.city,
+        state: billingAddress.state,
+        street: billingAddress.street,
+        zip: billingAddress.zip,
+        country: billingAddress.country
+      };
     }
 
     await user.save();
