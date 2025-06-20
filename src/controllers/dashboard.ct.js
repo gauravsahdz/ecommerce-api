@@ -1,4 +1,5 @@
 import {Order} from '../models/Order.mo.js';
+import UserModel from '../models/User.mo.js';
 import { ApiResponse, asyncHandler } from '../utils/responseHandler.ut.js';
 import mongoose from 'mongoose';
 
@@ -33,7 +34,7 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
   ]);
 
   // Get total customers
-  const totalCustomers = await CustomerModel.countDocuments();
+  const totalCustomers = await UserModel.find({role: 'Customer'}).countDocuments();
 
   // Get sales overview for the last 7 days
   const last7Days = new Date();

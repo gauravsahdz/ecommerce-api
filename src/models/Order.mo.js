@@ -17,6 +17,7 @@ const OrderItemSchema = new Schema({
   quantity: { type: Number, required: true },
   price: { type: Number, required: true },
   selectedSize: { type: String },
+  brandId: { type: Schema.Types.ObjectId, ref: 'Brand', index: true },
 }, { _id: false });
 
 const OrderSchema = new Schema(

@@ -3075,6 +3075,13 @@ paths:
       description: Retrieve all orders placed today with summary statistics
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: brandId
+          schema:
+            type: string
+            default: ""
+          description: Brand Id for the brand
       responses:
         '200':
           description: Today's orders retrieved successfully

@@ -210,6 +210,8 @@ export const deleteOrder = asyncHandler(async (req, res) => {
 
 // Get today's orders
 export const getTodayOrders = asyncHandler(async (req, res) => {
+  const { brandId } = req.query;
+  console.log(brandId);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -223,9 +225,16 @@ export const getTodayOrders = asyncHandler(async (req, res) => {
     }
   };
 
+  if (brandId) {
+    filter["items.brandId"] = brandId;
+  }
+
+  console.log(filter);
+
   const orders = await Order.find(filter)
     .populate('customerId')
     .populate('items.productId')
+    .populate('items.brandId')
     .sort({ createdAt: -1 });
 
   const total = orders.length;

@@ -4,6 +4,7 @@ import { ApiResponse, asyncHandler, ApiError } from '../utils/responseHandler.ut
 import path from 'path';
 import fs from 'fs';
 import sharp from 'sharp';
+import { parsePossiblyStringifiedArray } from '../utils/helper.js';
 
 // Get products with filters or a single product by ID
 export const getProducts = asyncHandler(async (req, res) => {
@@ -91,7 +92,7 @@ export const getProducts = asyncHandler(async (req, res) => {
 // Create a new product
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, price, sku, categoryId, brandId, compareAtPrice, costPrice, stock, lowStockThreshold, availableSizes, colors, weight, dimensions, tags, status, isFeatured, seo, ratings } = req.body;
+    const { name, description, price, sku, categoryId, brandId, compareAtPrice, costPrice, stock, lowStockThreshold, availableSizes, colors, weight, dimensions, tags, status, isFeatured, seo, ratings, barcode } = req.body;
     const files = req.files;
 
     if (!name || !description || !price || !sku || !categoryId) {
@@ -109,6 +110,13 @@ export const createProduct = async (req, res) => {
         data: null
       });
     }
+
+    // Parse colors if it is a string
+    const parsedColors = parsePossiblyStringifiedArray(colors);
+    const parsedWeight = parsePossiblyStringifiedArray(weight);
+    const parsedDimensions = parsePossiblyStringifiedArray(dimensions);
+    const parsedSeo = parsePossiblyStringifiedArray(seo);
+    const parsedRatings = parsePossiblyStringifiedArray(ratings);
 
     const compressedImages = await Promise.all(files.map(async (file) => {
       const ext = path.extname(file.filename).toLowerCase();
@@ -145,14 +153,14 @@ export const createProduct = async (req, res) => {
       stock,
       lowStockThreshold,
       availableSizes,
-      colors,
-      weight,
-      dimensions,
+      colors: parsedColors,
+      weight: parsedWeight,
+      dimensions: parsedDimensions,
       tags,
       status,
       isFeatured,
-      seo,
-      ratings,
+      seo: parsedSeo,
+      ratings: parsedRatings,
       imageUrl: compressedImages[0], // Use the first compressed image as the main image
       media: compressedImages.slice(1).map(image => ({
         url: image,
@@ -186,6 +194,37 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
   const updates = { ...req.body };
   
+  // Parse colors if it is a string or array of strings
+  if (updates.colors) {
+    if (typeof updates.colors === 'string') {
+      try {
+        updates.colors = JSON.parse(updates.colors);
+      } catch (e) {
+        return res.status(400).json({
+          type: 'ERROR',
+          message: 'Invalid colors format. Must be an array of objects.',
+          data: null
+        });
+      }
+    }
+    if (Array.isArray(updates.colors)) {
+      try {
+        updates.colors = updates.colors.map(c => {
+          if (typeof c === 'string') {
+            return JSON.parse(c);
+          }
+          return c;
+        });
+      } catch (e) {
+        return res.status(400).json({
+          type: 'ERROR',
+          message: 'Invalid colors format. Each color must be an object or a valid JSON string.',
+          data: null
+        });
+      }
+    }
+  }
+
   // Handle file uploads if present
   if (req.files && req.files.length > 0) {
     // First file becomes the main image
