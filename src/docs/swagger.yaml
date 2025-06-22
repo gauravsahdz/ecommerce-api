@@ -823,6 +823,11 @@ paths:
             format: uuid
           description: ID of a specific product to fetch
         - in: query
+          name: product_ids
+          schema:
+            type: string
+          description: Array of product IDs (JSON string or comma-separated) to fetch specific products
+        - in: query
           name: page
           schema:
             type: integer
@@ -853,6 +858,17 @@ paths:
           name: inStock
           schema:
             type: boolean
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            default: createdAt
+        - in: query
+          name: sortOrder
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
       responses:
         '200':
           description: Product data
@@ -897,9 +913,18 @@ paths:
                         minPrice: 500
                         maxPrice: 1000
                         inStock: true
+                        product_ids: "123e4567-e89b-12d3-a456-426614174000,123e4567-e89b-12d3-a456-426614174001"
                     sort:
                       by: "price"
                       order: "asc"
+                productIdsResponse:
+                  value:
+                    type: "OK"
+                    data:
+                      products: []
+                      requestedIds: ["123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174001"]
+                      foundIds: ["123e4567-e89b-12d3-a456-426614174000"]
+                      missingIds: ["123e4567-e89b-12d3-a456-426614174001"]
 
     post:
       tags:

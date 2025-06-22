@@ -15,6 +15,7 @@ export const getProducts = asyncHandler(async (req, res) => {
     minPrice,
     maxPrice,
     inStock,
+    product_ids,
     page = 1,
     limit = 10,
     sortBy = 'createdAt',
@@ -33,6 +34,40 @@ export const getProducts = asyncHandler(async (req, res) => {
     }
 
     return ApiResponse.success(res, 'Product retrieved successfully', { product });
+  }
+
+  // If product_ids is provided, return products for those specific IDs
+  if (product_ids) {
+    let productIdsArray;
+    
+    // Handle both string and array formats
+    if (typeof product_ids === 'string') {
+      try {
+        productIdsArray = JSON.parse(product_ids);
+      } catch (e) {
+        // If parsing fails, treat as comma-separated string
+        productIdsArray = product_ids.split(',').map(id => id.trim());
+      }
+    } else if (Array.isArray(product_ids)) {
+      productIdsArray = product_ids;
+    } else {
+      throw new ApiError(400, 'Invalid product_ids format. Must be an array of IDs or comma-separated string.');
+    }
+
+    // Validate all IDs
+    const validIds = productIdsArray.filter(id => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length === 0) {
+      throw new ApiError(400, 'No valid product IDs provided');
+    }
+
+    const products = await Product.find({ _id: { $in: validIds } });
+    
+    return ApiResponse.success(res, 'Products retrieved successfully', { 
+      products,
+      requestedIds: productIdsArray,
+      foundIds: products.map(p => p._id.toString()),
+      missingIds: productIdsArray.filter(id => !products.some(p => p._id.toString() === id))
+    });
   }
 
   // Build filter for list operation
@@ -79,7 +114,8 @@ export const getProducts = asyncHandler(async (req, res) => {
         categoryId,
         minPrice,
         maxPrice,
-        inStock
+        inStock,
+        product_ids
       }
     },
     sort: {
